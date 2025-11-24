@@ -1,0 +1,104 @@
+/**
+ * Tiingo API 클라이언트
+ * EOD (End of Day) 데이터 및 뉴스 제공
+ */
+
+/**
+ * Tiingo EOD 데이터 타입
+ */
+export interface TiingoEODData {
+  date: string;
+  close: number;
+  high: number;
+  low: number;
+  open: number;
+  volume: number;
+  adjClose: number;
+  adjHigh: number;
+  adjLow: number;
+  adjOpen: number;
+  adjVolume: number;
+  divCash: number;
+  splitFactor: number;
+}
+
+/**
+ * Tiingo API 기본 URL
+ */
+const TIINGO_API_BASE = "https://api.tiingo.com/tiingo";
+
+/**
+ * Tiingo API 키를 가져옵니다.
+ */
+function getApiKey(): string | null {
+  return process.env.TIINGO_API_KEY || null;
+}
+
+/**
+ * Tiingo API를 호출합니다.
+ */
+async function fetchTiingo<T>(
+  endpoint: string,
+  params?: Record<string, string>
+): Promise<T> {
+  const apiKey = getApiKey();
+
+  if (!apiKey) {
+    throw new Error("TIINGO_API_KEY 환경 변수가 설정되지 않았습니다.");
+  }
+
+  const queryParams = params ? new URLSearchParams(params).toString() : "";
+  const url = `${TIINGO_API_BASE}${endpoint}${
+    queryParams ? `?${queryParams}` : ""
+  }`;
+
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Token ${apiKey}`,
+    },
+    next: { revalidate: 3600 }, // 1시간 캐시
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Tiingo API 오류: ${response.status} - ${errorText}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+/**
+ * 주식의 EOD (End of Day) 데이터를 가져옵니다.
+ * @param symbol 주식 심볼
+ * @param startDate 시작 날짜 (YYYY-MM-DD 형식)
+ * @param endDate 종료 날짜 (YYYY-MM-DD 형식, 기본값: 오늘)
+ */
+export async function getEODData(
+  symbol: string,
+  startDate?: string,
+  endDate?: string
+): Promise<TiingoEODData[]> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const defaultStartDate =
+      startDate ||
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
+    const defaultEndDate = endDate || today;
+
+    return fetchTiingo<TiingoEODData[]>(
+      `/daily/${symbol.toUpperCase()}/prices`,
+      {
+        startDate: defaultStartDate,
+        endDate: defaultEndDate,
+      }
+    );
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`Tiingo EOD 데이터를 가져올 수 없습니다: ${symbol}`, error);
+    }
+    throw error;
+  }
+}
