@@ -125,31 +125,34 @@ async function analyzeWithHuggingFace(
       model.includes('Phi');
 
     const systemPrompt =
-      'You are a professional stock analyst specializing in Korean stock market analysis. Analyze technical indicators and market data, then provide your analysis in Korean language. Respond ONLY with valid JSON, no markdown, no explanations.';
+      'You are a professional stock analyst. Analyze the provided stock data and respond in Korean language. Use simple and easy-to-understand Korean words. Avoid mixing other languages, technical jargon, or English words. Write naturally as if explaining to a non-expert. Respond ONLY with valid JSON, no markdown, no explanations.';
 
-    const userPrompt = `다음 주식 데이터를 분석하고 한국어로 응답하세요. JSON 형식으로만 응답하세요.
+    const userPrompt = `Analyze the following stock data and provide your analysis in Korean language. Use simple and clear Korean words that are easy to understand.
 
-주식 데이터:
+Stock Data:
 ${prompt}
 
-다음 JSON 형식으로 실제 분석 결과를 작성하세요 (예시 텍스트를 복사하지 말고 실제 분석을 작성하세요):
+Respond in the following JSON format with actual analysis results (do not copy example text, write real analysis):
 {
-  "score": <0-100 사이의 점수, 실제 계산한 점수>,
-  "grade": "<SSS, SS, S, A, B, C, D, F 중 하나>",
-  "summary": "<실제 분석 요약을 한국어로 작성, 최대 200자>",
-  "riskFactors": ["<실제로 파악한 리스크 요인 1을 한국어로>", "<실제로 파악한 리스크 요인 2를 한국어로>"],
-  "strategy": "<실제 투자 전략 제안을 한국어로 작성, 최대 150자>",
-  "sentiment": "<bullish, bearish, neutral 중 하나>",
-  "confidence": <0-100 사이의 신뢰도, 실제 신뢰도>
+  "score": <A number between 0-100, your calculated score>,
+  "grade": "<One of: SSS, SS, S, A, B, C, D, F>",
+  "summary": "<Comprehensive analysis summary in Korean, max 200 characters. Use simple and clear Korean words. Explain the analysis in an easy-to-understand way.>",
+  "riskFactors": ["<Risk factor 1 in Korean, use simple words>", "<Risk factor 2 in Korean, use simple words>"],
+  "strategy": "<Investment strategy suggestion in Korean, max 150 characters. Use simple and clear Korean words.>",
+  "sentiment": "<One of: bullish, bearish, neutral>",
+  "confidence": <A number between 0-100, your confidence level>
 }
 
-중요 사항:
-- 모든 필드를 실제 분석 결과로 작성하세요
-- "summary"는 실제 분석 내용을 한국어로 작성 (예시 텍스트 복사 금지)
-- "riskFactors"는 실제로 파악한 리스크를 한국어로 작성 (예: "시장 변동성 증가", "거래량 감소" 등)
-- "strategy"는 실제 투자 전략을 한국어로 작성 (예: "단기 매수 후 목표가 도달 시 매도" 등)
-- 일본어나 영어가 아닌 한국어로만 작성하세요
-- JSON 객체만 응답하세요, 마크다운이나 코드 블록 없이 순수 JSON만`;
+IMPORTANT REQUIREMENTS:
+- All text fields (summary, riskFactors, strategy) must be in Korean ONLY
+- Use everyday Korean words that are easy to understand
+- Avoid mixing English, Vietnamese, or any other languages
+- Write naturally and clearly as if explaining to someone who is not a financial expert
+- Do not use technical jargon or complex financial terms
+- Example: Instead of "RSI의 지속적인 상승을 통해 강한 uptrend 트렌드를 xác지합니다", write "RSI가 계속 올라가고 있어서 주가가 오를 가능성이 높습니다"
+- Write actual investment strategy in Korean (e.g., "단기 매수 후 목표가 도달 시 매도")
+- Write ONLY in Korean, not in Japanese or English
+- Respond with JSON object only, no markdown or code blocks, pure JSON only`;
 
     let generatedText: string;
 
@@ -491,56 +494,58 @@ function buildAnalysisPrompt(data: {
     .map((c) => c.close)
     .join(', ');
 
-  return `
-다음 주식 데이터를 분석해주세요:
+  return `You are a professional stock analyst. Analyze the following stock data and provide your analysis.
 
-**주식 정보:**
-- 심볼: ${data.symbol}
-- 현재가: $${data.stockInfo.currentPrice}
-- 변화율: ${data.stockInfo.changePercent}%
+**Stock Information:**
+- Symbol: ${data.symbol}
+- Current Price: $${data.stockInfo.currentPrice}
+- Change Percent: ${data.stockInfo.changePercent}%
 
-**시장 상황:**
-- 시장 지수 정보 없음 (무료 플랜 제한)
+**Market Condition:**
+- Market indices: Not available (free plan limitation)
 
-**기술적 지표:**
+**Technical Indicators:**
 - RSI: ${data.technicalIndicators?.rsi || 'N/A'}
 - MACD: ${
     data.technicalIndicators?.macd
       ? JSON.stringify(data.technicalIndicators.macd)
       : 'N/A'
   }
-- 이동평균선: ${
+- Moving Averages (SMA): ${
     data.technicalIndicators?.sma
       ? JSON.stringify(data.technicalIndicators.sma)
       : 'N/A'
   }
 
-**최근 가격 추이:**
+**Recent Price Trend:**
 ${recentPrices}
 
-**기술적 분석 결과:**
-- 트렌드: ${data.technicalAnalysis.trend.direction} (${
+**Technical Analysis Results:**
+- Trend: ${data.technicalAnalysis.trend.direction} (${
     data.technicalAnalysis.trend.strength
   })
-- AI 점수: ${data.technicalAnalysis.score} (${data.technicalAnalysis.grade})
-- 목표가: $${data.technicalAnalysis.targetPrice} (+${
+- AI Score: ${data.technicalAnalysis.score} (${data.technicalAnalysis.grade})
+- Target Price: $${data.technicalAnalysis.targetPrice} (+${
     data.technicalAnalysis.targetReturn
   }%)
-- 손절가: $${data.technicalAnalysis.stopLoss} (${
+- Stop Loss: $${data.technicalAnalysis.stopLoss} (${
     data.technicalAnalysis.stopLossPercent
   }%)
 
-다음 JSON 형식으로 응답해주세요:
+**IMPORTANT: Respond in Korean language. Use simple and easy-to-understand Korean words. Avoid mixing other languages or technical jargon. Write naturally as if explaining to a non-expert.**
+
+Respond in the following JSON format:
 {
-  "score": 0-100 사이의 점수,
+  "score": A number between 0-100,
   "grade": "SSS" | "SS" | "S" | "A" | "B" | "C" | "D" | "F",
-  "summary": "종합 분석 요약 (한국어, 200자 이내)",
-  "riskFactors": ["리스크 요인 1", "리스크 요인 2"],
-  "strategy": "투자 전략 제안 (한국어, 150자 이내)",
+  "summary": "Comprehensive analysis summary in Korean (max 200 characters, use simple and clear Korean)",
+  "riskFactors": ["Risk factor 1 in Korean", "Risk factor 2 in Korean"],
+  "strategy": "Investment strategy suggestion in Korean (max 150 characters, use simple and clear Korean)",
   "sentiment": "bullish" | "bearish" | "neutral",
-  "confidence": 0-100 사이의 신뢰도
+  "confidence": A number between 0-100
 }
-`;
+
+Remember: All text fields (summary, riskFactors, strategy) must be in Korean only. Use everyday Korean words that are easy to understand.`;
 }
 
 /**
