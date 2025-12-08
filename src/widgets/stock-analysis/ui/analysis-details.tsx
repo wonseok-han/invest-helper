@@ -75,6 +75,35 @@ export default function AnalysisDetails({
     return '—';
   };
 
+  const getTrendColor = () => {
+    if (analysis.trend.direction === 'uptrend') {
+      return 'text-green-400';
+    }
+    if (analysis.trend.direction === 'downtrend') {
+      return 'text-red-400';
+    }
+    return 'text-yellow-400';
+  };
+
+  const getEnergyColor = () => {
+    // Golden Cross 또는 매도 압력 감소 = 상승 신호 (초록색)
+    if (
+      analysis.energy.pattern === 'golden-cross' ||
+      analysis.energy.sellingPressure === 'decreased'
+    ) {
+      return 'text-green-400';
+    }
+    // Dead Cross 또는 매도 압력 증가 = 하락 신호 (빨간색)
+    if (
+      analysis.energy.pattern === 'dead-cross' ||
+      analysis.energy.sellingPressure === 'increased'
+    ) {
+      return 'text-red-400';
+    }
+    // 안정 또는 없음 = 중립 (노란색)
+    return 'text-yellow-400';
+  };
+
   return (
     <div className="space-y-4 text-sm">
       {/* 트렌드 */}
@@ -82,7 +111,7 @@ export default function AnalysisDetails({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <span className="text-gray-400">트렌드:</span>
-            <span className="text-white ml-2">{getTrendText()}</span>
+            <span className={`${getTrendColor()} ml-2`}>{getTrendText()}</span>
           </div>
         </div>
         <p className="text-xs text-gray-500 pl-2">
@@ -96,7 +125,9 @@ export default function AnalysisDetails({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <span className="text-gray-400">에너지:</span>
-            <span className="text-white ml-2">{getEnergyText()}</span>
+            <span className={`${getEnergyColor()} ml-2`}>
+              {getEnergyText()}
+            </span>
           </div>
         </div>
         <p className="text-xs text-gray-500 pl-2">
@@ -159,7 +190,15 @@ export default function AnalysisDetails({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <span className="text-gray-400">신호:</span>
-            <span className="text-green-400 font-semibold ml-2">
+            <span
+              className={`font-semibold ml-2 ${
+                analysis.signal.action === 'buy'
+                  ? 'text-green-400'
+                  : analysis.signal.action === 'sell'
+                  ? 'text-red-400'
+                  : 'text-yellow-400'
+              }`}
+            >
               {analysis.signal.description}
             </span>
           </div>
