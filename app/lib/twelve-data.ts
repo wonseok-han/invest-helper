@@ -49,7 +49,7 @@ async function fetchTwelveData<T>(
   params: Record<string, string>
 ): Promise<T> {
   const apiKey = getApiKey();
-  
+
   if (!apiKey) {
     throw new Error("TWELVE_DATA_API_KEY 환경 변수가 설정되지 않았습니다.");
   }
@@ -74,7 +74,9 @@ async function fetchTwelveData<T>(
 
   // Twelve Data는 에러 시 { status: "error", message: "..." } 형태로 반환
   if (data.status === "error") {
-    throw new Error(`Twelve Data API 오류: ${data.message || "알 수 없는 오류"}`);
+    throw new Error(
+      `Twelve Data API 오류: ${data.message || "알 수 없는 오류"}`
+    );
   }
 
   return data as T;
@@ -232,3 +234,37 @@ export async function getTechnicalIndicators(
   };
 }
 
+/**
+ * 실시간 현재가를 가져옵니다.
+ * @param symbol 주식 심볼
+ * @returns 현재가와 타임스탬프, 실패 시 null
+ */
+export async function getCurrentPrice(
+  symbol: string
+): Promise<{ price: number; timestamp: number } | null> {
+  try {
+    const data = await fetchTwelveData<{
+      price: string;
+      timestamp?: number;
+    }>("/price", {
+      symbol: symbol.toUpperCase(),
+    });
+
+    if (data.price) {
+      const price = parseFloat(data.price);
+      if (!isNaN(price)) {
+        return {
+          price,
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`현재가를 가져올 수 없습니다: ${symbol}`, error);
+    }
+    return null;
+  }
+}

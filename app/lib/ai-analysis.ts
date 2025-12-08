@@ -172,6 +172,21 @@ export function calculateTargetAndStopLoss(
   stopLoss: number;
   stopLossPercent: number;
 } {
+  // 유효성 검사: currentPrice가 유효하지 않으면 기본값 반환
+  if (
+    !currentPrice ||
+    currentPrice <= 0 ||
+    isNaN(currentPrice) ||
+    !isFinite(currentPrice)
+  ) {
+    return {
+      targetPrice: 0,
+      targetReturn: 0,
+      stopLoss: 0,
+      stopLossPercent: 0,
+    };
+  }
+
   let targetPrice: number;
   let stopLoss: number;
 
@@ -180,31 +195,45 @@ export function calculateTargetAndStopLoss(
   // 리스크/리워드 비율: 최소 2:1 이상 유지
 
   if (trend.direction === "uptrend") {
-    // 상승 트렌드: 저항선을 목표가로, 지지선을 손절가로
-    // 저항선이 현재가보다 높으면 저항선 사용, 아니면 현재가의 10% 상승 목표
-    targetPrice =
-      resistance > currentPrice
-        ? Math.min(resistance, currentPrice * 1.15) // 저항선이 너무 높으면 제한
-        : currentPrice * 1.1;
+    // 상승 트렌드: 지지선을 기준으로 손절가를 먼저 설정
+    // 손절가는 지지선을 기준으로 하되, 너무 낮으면 제한
+    if (support < currentPrice && support > currentPrice * 0.85) {
+      // 지지선이 합리적인 범위 내에 있으면 지지선 사용
+      stopLoss = support;
+    } else if (support < currentPrice * 0.85) {
+      // 지지선이 너무 낮으면 (현재가의 85% 미만) 현재가의 8% 하락으로 제한
+      stopLoss = currentPrice * 0.92;
+    } else {
+      // 지지선이 현재가보다 높거나 없으면 현재가의 5% 하락
+      stopLoss = currentPrice * 0.95;
+    }
 
-    // 지지선이 현재가보다 낮으면 지지선 사용, 아니면 현재가의 5% 하락
-    stopLoss =
-      support < currentPrice
-        ? Math.max(support, currentPrice * 0.92) // 지지선이 너무 낮으면 제한
-        : currentPrice * 0.95;
-
-    // 리스크/리워드 비율 확인 및 조정 (최소 2:1)
-    const reward = targetPrice - currentPrice;
+    // 리스크 계산
     const risk = currentPrice - stopLoss;
-    if (risk > 0 && reward / risk < 2) {
-      // 리스크 대비 리워드가 너무 작으면 목표가를 높이거나 손절가를 낮춤
-      const targetRatio = 2.5; // 2.5:1 비율 목표
-      stopLoss = currentPrice - reward / targetRatio;
-      // 손절가가 너무 낮아지지 않도록 제한 (최대 8% 손실)
-      if (stopLoss < currentPrice * 0.92) {
-        stopLoss = currentPrice * 0.92;
-        targetPrice = currentPrice + risk * targetRatio;
+
+    // 리스크/리워드 비율(최소 2:1)을 맞추기 위해 목표가 설정
+    const minReward = risk * 2; // 최소 리워드 (2:1 비율)
+
+    // 목표가는 저항선을 우선 고려하되, 리스크/리워드 비율을 만족해야 함
+    if (resistance > currentPrice) {
+      // 저항선이 현재가보다 높으면 저항선 사용
+      const rewardAtResistance = resistance - currentPrice;
+      if (rewardAtResistance >= minReward) {
+        // 저항선에서의 리워드가 최소 리워드 이상이면 저항선 사용
+        targetPrice = Math.min(resistance, currentPrice * 1.15); // 너무 높으면 제한
+      } else {
+        // 저항선에서의 리워드가 부족하면 리스크/리워드 비율에 맞춰 목표가 설정
+        targetPrice = currentPrice + minReward;
+        // 목표가가 저항선을 넘지 않도록 제한
+        if (targetPrice > resistance) {
+          targetPrice = Math.min(resistance, currentPrice * 1.15);
+        }
       }
+    } else {
+      // 저항선이 현재가보다 낮거나 없으면 리스크/리워드 비율에 맞춰 목표가 설정
+      targetPrice = currentPrice + minReward;
+      // 목표가가 너무 높아지지 않도록 제한 (최대 15% 상승)
+      targetPrice = Math.min(targetPrice, currentPrice * 1.15);
     }
   } else if (trend.direction === "downtrend") {
     // 하락 트렌드: 매수 비추천
@@ -222,27 +251,38 @@ export function calculateTargetAndStopLoss(
       targetPrice = currentPrice + risk * 2;
     }
   } else {
-    // 횡보: 저항선을 목표가로, 지지선을 손절가로
-    targetPrice =
-      resistance > currentPrice
-        ? Math.min(resistance, currentPrice * 1.1)
-        : currentPrice * 1.1;
+    // 횡보: 지지선을 기준으로 손절가를 먼저 설정
+    if (support < currentPrice && support > currentPrice * 0.85) {
+      // 지지선이 합리적인 범위 내에 있으면 지지선 사용
+      stopLoss = support;
+    } else if (support < currentPrice * 0.85) {
+      // 지지선이 너무 낮으면 현재가의 5% 하락으로 제한
+      stopLoss = currentPrice * 0.95;
+    } else {
+      // 지지선이 현재가보다 높거나 없으면 현재가의 5% 하락
+      stopLoss = currentPrice * 0.95;
+    }
 
-    stopLoss =
-      support < currentPrice
-        ? Math.max(support, currentPrice * 0.95)
-        : currentPrice * 0.95;
-
-    // 리스크/리워드 비율 확인 및 조정
-    const reward = targetPrice - currentPrice;
+    // 리스크 계산
     const risk = currentPrice - stopLoss;
-    if (risk > 0 && reward / risk < 2) {
-      const targetRatio = 2.5;
-      stopLoss = currentPrice - reward / targetRatio;
-      if (stopLoss < currentPrice * 0.95) {
-        stopLoss = currentPrice * 0.95;
-        targetPrice = currentPrice + risk * targetRatio;
+
+    // 리스크/리워드 비율(최소 2:1)을 맞추기 위해 목표가 설정
+    const minReward = risk * 2;
+
+    // 목표가는 저항선을 우선 고려하되, 리스크/리워드 비율을 만족해야 함
+    if (resistance > currentPrice) {
+      const rewardAtResistance = resistance - currentPrice;
+      if (rewardAtResistance >= minReward) {
+        targetPrice = Math.min(resistance, currentPrice * 1.1);
+      } else {
+        targetPrice = currentPrice + minReward;
+        if (targetPrice > resistance) {
+          targetPrice = Math.min(resistance, currentPrice * 1.1);
+        }
       }
+    } else {
+      targetPrice = currentPrice + minReward;
+      targetPrice = Math.min(targetPrice, currentPrice * 1.1);
     }
   }
 
@@ -265,11 +305,25 @@ export function calculateTargetAndStopLoss(
   const targetReturn = ((targetPrice - currentPrice) / currentPrice) * 100;
   const stopLossPercent = ((stopLoss - currentPrice) / currentPrice) * 100;
 
+  // 최종 유효성 검사: NaN이나 Infinity가 있으면 기본값 사용
+  const safeTargetPrice =
+    isNaN(targetPrice) || !isFinite(targetPrice)
+      ? currentPrice * 1.05
+      : targetPrice;
+  const safeTargetReturn =
+    isNaN(targetReturn) || !isFinite(targetReturn) ? 5.0 : targetReturn;
+  const safeStopLoss =
+    isNaN(stopLoss) || !isFinite(stopLoss) ? currentPrice * 0.95 : stopLoss;
+  const safeStopLossPercent =
+    isNaN(stopLossPercent) || !isFinite(stopLossPercent)
+      ? -5.0
+      : stopLossPercent;
+
   return {
-    targetPrice: Math.round(targetPrice * 100) / 100,
-    targetReturn: Math.round(targetReturn * 10) / 10,
-    stopLoss: Math.round(stopLoss * 100) / 100,
-    stopLossPercent: Math.round(stopLossPercent * 10) / 10,
+    targetPrice: Math.round(safeTargetPrice * 100) / 100,
+    targetReturn: Math.round(safeTargetReturn * 10) / 10,
+    stopLoss: Math.round(safeStopLoss * 100) / 100,
+    stopLossPercent: Math.round(safeStopLossPercent * 10) / 10,
   };
 }
 
@@ -375,6 +429,16 @@ export function performAIAnalysis(stockData: {
   candles: CandleData[];
   technicalIndicators?: TechnicalIndicators;
 }): AIAnalysis {
+  // currentPrice 유효성 검사
+  if (
+    !stockData.currentPrice ||
+    stockData.currentPrice <= 0 ||
+    isNaN(stockData.currentPrice) ||
+    !isFinite(stockData.currentPrice)
+  ) {
+    throw new Error("유효하지 않은 현재가입니다.");
+  }
+
   // 캔들 데이터에서 가격과 거래량 추출
   // 캔들 데이터는 오래된 것부터 최신 순서로 정렬되어 있음
   const priceHistory = stockData.candles.map((c) => c.close);
@@ -382,24 +446,22 @@ export function performAIAnalysis(stockData: {
 
   // 현재가와 캔들 데이터의 마지막 종가 일치 확인
   // EOD 데이터는 장 마감 후 데이터이므로, 현재가(실시간)와 다를 수 있음
-  // 현재가를 최신 데이터로 반영하여 정확한 분석 수행
+  // 상세 분석, 목표가/손절가, AI Score는 최신 데이터를 사용해야 하므로
+  // 항상 현재가를 최신 데이터로 반영하여 정확한 분석 수행
   if (stockData.candles.length > 0) {
     const lastCandle = stockData.candles[stockData.candles.length - 1];
     const lastClose = lastCandle.close;
 
-    // 마지막 캔들의 종가와 현재가가 다르면 (1% 이상 차이) 현재가를 반영
+    // 마지막 캔들의 종가와 현재가가 다르면 항상 현재가를 반영
     // 이는 EOD 데이터와 실시간 데이터의 차이를 반영하기 위함
-    const priceDiff =
-      lastClose > 0
-        ? Math.abs(stockData.currentPrice - lastClose) / lastClose
-        : 1;
-
-    if (priceDiff > 0.01) {
+    // 캔들 차트는 과거 데이터를 보여주지만, 분석은 최신 데이터를 사용해야 함
+    if (Math.abs(stockData.currentPrice - lastClose) > 0.001) {
       // 현재가를 마지막 캔들에 반영 (실시간 데이터 반영)
       // 가격 히스토리 업데이트
       priceHistory[priceHistory.length - 1] = stockData.currentPrice;
 
       // 캔들 데이터 업데이트 (불변성 유지)
+      // 주의: 이 업데이트는 분석용이며, 실제 캔들 차트에는 원본 데이터가 표시됨
       stockData.candles[stockData.candles.length - 1] = {
         ...lastCandle,
         close: stockData.currentPrice,

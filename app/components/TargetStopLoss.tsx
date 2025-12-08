@@ -2,7 +2,7 @@
  * 목표가 및 손절가 표시 컴포넌트
  */
 
-import type { AIAnalysis } from '../types/stock';
+import type { AIAnalysis } from "../types/stock";
 
 interface TargetStopLossProps {
   analysis: AIAnalysis;
@@ -43,7 +43,7 @@ function formatTimestamp(timestamp: number): string {
 
 /**
  * 목표가와 손절가를 표시하는 컴포넌트
- * 
+ *
  * 설명:
  * - TARGET (목표가): 매수 시 목표로 하는 매도 가격 (현재 가격 대비 수익률 표시)
  * - STOP LOSS (손절가): 손실을 막기 위해 매도할 가격 (현재 가격 대비 손실률 표시)
@@ -55,12 +55,43 @@ export default function TargetStopLoss({
   currentPrice,
   dataSource,
 }: TargetStopLossProps) {
+  // 안전한 값 추출 (null/undefined 체크 및 기본값 설정)
+  const targetPrice =
+    analysis?.targetPrice != null && !isNaN(analysis.targetPrice)
+      ? analysis.targetPrice
+      : currentPrice * 1.05;
+  const targetReturn =
+    analysis?.targetReturn != null && !isNaN(analysis.targetReturn)
+      ? analysis.targetReturn
+      : 5.0;
+  const stopLoss =
+    analysis?.stopLoss != null && !isNaN(analysis.stopLoss)
+      ? analysis.stopLoss
+      : currentPrice * 0.95;
+  const stopLossPercent =
+    analysis?.stopLossPercent != null && !isNaN(analysis.stopLossPercent)
+      ? analysis.stopLossPercent
+      : -5.0;
+  const support =
+    analysis?.support != null && !isNaN(analysis.support)
+      ? analysis.support
+      : currentPrice * 0.95;
+  const resistance =
+    analysis?.resistance != null && !isNaN(analysis.resistance)
+      ? analysis.resistance
+      : currentPrice * 1.1;
+
   return (
     <div className="space-y-6">
       {/* 현재 가격 표시 */}
       <div className="pb-4 border-b border-gray-700">
         <div className="text-sm text-gray-400 mb-1">현재 가격</div>
-        <div className="text-2xl font-bold">${currentPrice.toFixed(2)}</div>
+        <div className="text-2xl font-bold">
+          $
+          {currentPrice != null && !isNaN(currentPrice)
+            ? currentPrice.toFixed(2)
+            : "0.00"}
+        </div>
       </div>
 
       {/* 목표가 */}
@@ -74,16 +105,22 @@ export default function TargetStopLoss({
           </div>
           <div className="text-right">
             <div className="text-green-400 font-semibold text-lg">
-              ${analysis.targetPrice.toFixed(2)}
+              ${targetPrice.toFixed(2)}
             </div>
-            <div className={`text-sm ${analysis.targetReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {analysis.targetReturn > 0 ? '+' : ''}{analysis.targetReturn.toFixed(1)}%
+            <div
+              className={`text-sm ${
+                targetReturn >= 0 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {targetReturn > 0 ? "+" : ""}
+              {targetReturn.toFixed(1)}%
               <span className="text-gray-500 text-xs ml-1">(현재가 대비)</span>
             </div>
           </div>
         </div>
         <div className="text-xs text-gray-500 pl-2 pt-1 border-t border-gray-800">
-          <span className="text-gray-400">기준 저항선:</span> ${analysis.resistance.toFixed(2)}
+          <span className="text-gray-400">기준 저항선:</span> $
+          {resistance.toFixed(2)}
           <span className="text-gray-600 ml-2">
             (가격이 올라가기 어려운 구간)
           </span>
@@ -101,16 +138,19 @@ export default function TargetStopLoss({
           </div>
           <div className="text-right">
             <div className="text-red-400 font-semibold text-lg">
-              ${analysis.stopLoss.toFixed(2)}
+              ${stopLoss.toFixed(2)}
             </div>
             <div className="text-red-400 text-sm">
-              {analysis.stopLossPercent.toFixed(1)}%
-              <span className="text-gray-500 text-xs ml-1">(현재가 대비 손실)</span>
+              {stopLossPercent.toFixed(1)}%
+              <span className="text-gray-500 text-xs ml-1">
+                (현재가 대비 손실)
+              </span>
             </div>
           </div>
         </div>
         <div className="text-xs text-gray-500 pl-2 pt-1 border-t border-gray-800">
-          <span className="text-gray-400">기준 지지선:</span> ${analysis.support.toFixed(2)}
+          <span className="text-gray-400">기준 지지선:</span> $
+          {support.toFixed(2)}
           <span className="text-gray-600 ml-2">
             (가격이 떨어지기 어려운 구간)
           </span>
@@ -122,9 +162,7 @@ export default function TargetStopLoss({
         <div className="pt-4 mt-4 border-t border-gray-700">
           <div className="text-xs text-gray-500 space-y-1">
             {dataSource.lastUpdated && (
-              <div>
-                기준 시간: {formatTimestamp(dataSource.lastUpdated)}
-              </div>
+              <div>기준 시간: {formatTimestamp(dataSource.lastUpdated)}</div>
             )}
             <div>데이터 소스: {dataSource.source}</div>
           </div>
@@ -133,4 +171,3 @@ export default function TargetStopLoss({
     </div>
   );
 }
-

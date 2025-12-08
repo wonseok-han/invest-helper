@@ -102,3 +102,38 @@ export async function getEODData(
     throw error;
   }
 }
+
+/**
+ * 최신 EOD 데이터에서 현재가를 가져옵니다.
+ * @param symbol 주식 심볼
+ * @returns 현재가와 타임스탬프, 실패 시 null
+ */
+export async function getCurrentPriceFromEOD(
+  symbol: string
+): Promise<{ price: number; timestamp: number } | null> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const eodData = await getEODData(symbol, today, today);
+
+    if (eodData && eodData.length > 0) {
+      // 가장 최신 데이터 사용
+      const latest = eodData[eodData.length - 1];
+      const dateOnly = latest.date.split("T")[0];
+      const timestamp = Math.floor(
+        new Date(dateOnly + "T16:00:00Z").getTime() / 1000
+      );
+
+      return {
+        price: latest.adjClose || latest.close,
+        timestamp,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`Tiingo 현재가를 가져올 수 없습니다: ${symbol}`, error);
+    }
+    return null;
+  }
+}

@@ -7,7 +7,7 @@ export interface MarketCondition {
   /** VIX 지수 */
   vix: {
     value: number;
-    level: 'low' | 'medium' | 'high' | 'risk';
+    level: "low" | "medium" | "high" | "risk";
   };
   /** 주요 시장 지수 (S&P 500, NASDAQ 등) */
   marketIndices?: {
@@ -48,6 +48,8 @@ export interface StockInfo {
   changePercent: number;
   /** 데이터 기준 시간 (Unix timestamp, 초 단위) */
   lastUpdated?: number;
+  /** 데이터 소스 (어떤 API에서 가져왔는지) */
+  dataSource?: string;
   /** 기업 프로필 정보 */
   companyProfile?: {
     name: string;
@@ -60,17 +62,17 @@ export interface StockInfo {
 /** 트렌드 정보 */
 export interface TrendInfo {
   /** 트렌드 방향 */
-  direction: 'uptrend' | 'downtrend' | 'sideways';
+  direction: "uptrend" | "downtrend" | "sideways";
   /** 트렌드 강도 */
-  strength: 'weak' | 'moderate' | 'strong';
+  strength: "weak" | "moderate" | "strong";
 }
 
 /** 에너지 정보 */
 export interface EnergyInfo {
   /** 매도 압력 상태 */
-  sellingPressure: 'increased' | 'decreased' | 'stable';
+  sellingPressure: "increased" | "decreased" | "stable";
   /** 패턴 유형 */
-  pattern: 'golden-cross' | 'dead-cross' | 'none';
+  pattern: "golden-cross" | "dead-cross" | "none";
 }
 
 /** 패턴 유사도 정보 */
@@ -84,7 +86,7 @@ export interface PatternSimilarity {
 /** 캔들 패턴 정보 */
 export interface CandlePattern {
   /** 방향 */
-  direction: 'up' | 'down' | 'neutral';
+  direction: "up" | "down" | "neutral";
   /** 패턴 이름 */
   pattern: string;
 }
@@ -92,9 +94,9 @@ export interface CandlePattern {
 /** 신호 정보 */
 export interface SignalInfo {
   /** 신호 유형 */
-  type: 'bullish-divergence' | 'bearish-divergence' | 'none';
+  type: "bullish-divergence" | "bearish-divergence" | "none";
   /** 액션 */
-  action: 'buy' | 'sell' | 'hold';
+  action: "buy" | "sell" | "hold";
   /** 설명 */
   description: string;
 }
@@ -132,7 +134,7 @@ export interface AIAnalysis {
   /** OBV 잔여율 */
   obvResidualRate: number;
   /** OBV 강도 */
-  obvStrength: 'weak' | 'moderate' | 'strong';
+  obvStrength: "weak" | "moderate" | "strong";
   /** 캔들 패턴 */
   candlePattern: CandlePattern;
   /** 복합 패턴 */
@@ -187,6 +189,10 @@ export interface StockAnalysis {
       source: string; // "Twelve Data"
       lastUpdated?: number; // Unix timestamp
     };
+    /** 목표가/손절가 계산에 사용된 데이터 소스 (가장 많이 사용된 소스) */
+    targetStopLoss?: {
+      source: string;
+      lastUpdated?: number; // Unix timestamp
+    };
   };
 }
-

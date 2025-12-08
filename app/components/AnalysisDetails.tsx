@@ -7,10 +7,6 @@ import type { AIAnalysis } from "../types/stock";
 interface AnalysisDetailsProps {
   analysis: AIAnalysis;
   dataSource?: {
-    priceHistory?: {
-      source: string;
-      lastUpdated?: number;
-    };
     technicalIndicators?: {
       source: string;
       lastUpdated?: number;
@@ -217,38 +213,24 @@ export default function AnalysisDetails({
       </div>
 
       {/* 데이터 소스 정보 */}
-      {dataSource && (
+      {dataSource?.technicalIndicators && (
         <div className="pt-3 mt-3 border-t border-gray-700 space-y-2">
           <div className="text-xs text-gray-500">
             <div className="font-semibold mb-1">데이터 소스 정보</div>
-            {dataSource.priceHistory && (
-              <div className="space-y-1">
-                <div>
-                  가격 히스토리: {dataSource.priceHistory.source}
-                  {dataSource.priceHistory.lastUpdated && (
-                    <span className="ml-2 text-gray-600">
-                      ({formatTimestamp(dataSource.priceHistory.lastUpdated)})
-                    </span>
-                  )}
-                </div>
+            <div className="space-y-1">
+              <div>
+                기술적 지표: {dataSource.technicalIndicators.source}
+                {dataSource.technicalIndicators.lastUpdated && (
+                  <span className="ml-2 text-gray-600">
+                    (
+                    {formatTimestamp(
+                      dataSource.technicalIndicators.lastUpdated
+                    )}
+                    )
+                  </span>
+                )}
               </div>
-            )}
-            {dataSource.technicalIndicators && (
-              <div className="space-y-1">
-                <div>
-                  기술적 지표: {dataSource.technicalIndicators.source}
-                  {dataSource.technicalIndicators.lastUpdated && (
-                    <span className="ml-2 text-gray-600">
-                      (
-                      {formatTimestamp(
-                        dataSource.technicalIndicators.lastUpdated
-                      )}
-                      )
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}

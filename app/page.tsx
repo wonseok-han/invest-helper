@@ -200,7 +200,10 @@ export default function Home() {
             {/* 캔들 차트 */}
             {analysis.candles && analysis.candles.length > 0 && (
               <div className="p-6 bg-gray-900 rounded-lg">
-                <CandleChart candles={analysis.candles} />
+                <CandleChart
+                  candles={analysis.candles}
+                  dataSource={analysis.dataSource?.priceHistory}
+                />
               </div>
             )}
 
@@ -210,7 +213,6 @@ export default function Home() {
               <AnalysisDetails
                 analysis={analysis.analysis}
                 dataSource={{
-                  priceHistory: analysis.dataSource?.priceHistory,
                   technicalIndicators: analysis.dataSource?.technicalIndicators,
                 }}
               />
@@ -221,7 +223,10 @@ export default function Home() {
               <TargetStopLoss
                 analysis={analysis.analysis}
                 currentPrice={analysis.stock.currentPrice}
-                dataSource={analysis.dataSource?.priceHistory}
+                dataSource={
+                  analysis.dataSource?.targetStopLoss ||
+                  analysis.dataSource?.priceHistory
+                }
               />
             </div>
 

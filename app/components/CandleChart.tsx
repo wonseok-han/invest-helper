@@ -10,6 +10,10 @@ import type { CandleData } from "../types/stock";
 
 interface CandleChartProps {
   candles: CandleData[];
+  dataSource?: {
+    source: string;
+    lastUpdated?: number;
+  };
 }
 
 /**
@@ -21,6 +25,34 @@ function formatDate(timestamp?: number): string {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   return `${month}/${day}`;
+}
+
+/**
+ * 타임스탬프를 읽기 쉬운 형식으로 변환합니다.
+ */
+function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  // 한국 시간으로 변환
+  const koreaDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const dateStr = koreaDate.toISOString().replace("T", " ").substring(0, 19);
+
+  if (diffMins < 1) {
+    return `방금 전 (${dateStr})`;
+  } else if (diffMins < 60) {
+    return `${diffMins}분 전 (${dateStr})`;
+  } else if (diffHours < 24) {
+    return `${diffHours}시간 전 (${dateStr})`;
+  } else if (diffDays < 7) {
+    return `${diffDays}일 전 (${dateStr})`;
+  } else {
+    return dateStr;
+  }
 }
 
 /**
@@ -45,7 +77,7 @@ function transformCandleData(candles: CandleData[]) {
 /**
  * 캔들 차트를 표시하는 컴포넌트
  */
-export default function CandleChart({ candles }: CandleChartProps) {
+export default function CandleChart({ candles, dataSource }: CandleChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
@@ -343,6 +375,17 @@ export default function CandleChart({ candles }: CandleChartProps) {
         <span>최고가: ${maxPrice.toFixed(2)}</span>
         <span>캔들 수: {candles.length}개</span>
       </div>
+      {/* 데이터 소스 정보 */}
+      {dataSource && (
+        <div className="pt-2 mt-2 border-t border-gray-700">
+          <div className="text-xs text-gray-500 space-y-1">
+            {dataSource.lastUpdated && (
+              <div>기준 시간: {formatTimestamp(dataSource.lastUpdated)}</div>
+            )}
+            <div>데이터 소스: {dataSource.source}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -50,6 +50,18 @@ export async function GET(request: Request) {
 
     // 가격 히스토리가 없으면 현재 가격만으로 제한된 분석 수행
     if (!priceData) {
+      // currentPrice 유효성 검사
+      if (
+        !stockInfo.currentPrice ||
+        stockInfo.currentPrice <= 0 ||
+        isNaN(stockInfo.currentPrice)
+      ) {
+        return NextResponse.json(
+          { error: "유효하지 않은 현재가입니다." },
+          { status: 400 }
+        );
+      }
+
       // 현재 가격만으로 기본 분석 수행 (캔들 데이터 생성)
       const analysis = performAIAnalysis({
         currentPrice: stockInfo.currentPrice,
@@ -65,6 +77,12 @@ export async function GET(request: Request) {
         ],
         technicalIndicators: technicalIndicators || undefined,
       });
+
+      // 가격 히스토리가 없는 경우, 현재가만 사용하므로 stockInfo 소스 사용
+      const targetStopLossDataSource = {
+        source: stockInfo.dataSource || "Unknown",
+        lastUpdated: stockInfo.lastUpdated,
+      };
 
       const result: StockAnalysis = {
         stock: stockInfo,
@@ -82,7 +100,7 @@ export async function GET(request: Request) {
         ],
         dataSource: {
           stockInfo: {
-            source: "Finnhub",
+            source: stockInfo.dataSource || "Unknown",
             lastUpdated: stockInfo.lastUpdated,
           },
           priceHistory: {
@@ -99,10 +117,23 @@ export async function GET(request: Request) {
                 lastUpdated: Math.floor(Date.now() / 1000), // 현재 시간
               }
             : undefined,
+          targetStopLoss: targetStopLossDataSource,
         },
       };
 
       return NextResponse.json(result);
+    }
+
+    // currentPrice 유효성 검사
+    if (
+      !stockInfo.currentPrice ||
+      stockInfo.currentPrice <= 0 ||
+      isNaN(stockInfo.currentPrice)
+    ) {
+      return NextResponse.json(
+        { error: "유효하지 않은 현재가입니다." },
+        { status: 400 }
+      );
     }
 
     // AI 분석 수행 (실제 캔들 데이터 사용)
@@ -112,6 +143,33 @@ export async function GET(request: Request) {
       technicalIndicators: technicalIndicators || undefined,
     });
 
+    // 목표가/손절가 계산에 사용된 데이터 소스 결정
+    // 계산에 사용되는 데이터:
+    // 1. currentPrice (stockInfo) - 모든 계산의 기준점
+    // 2. candles (priceHistory) - trend, support, resistance 계산에 필수
+    // 3. technicalIndicators (Twelve Data) - AI 점수에만 영향 (선택적)
+    //
+    // candles가 가장 많이 사용되므로 priceHistory 소스를 우선시
+    // 하지만 currentPrice도 중요하므로, 두 소스 중 더 최신 데이터를 사용
+    const targetStopLossDataSource = (() => {
+      const priceHistorySource = priceData.dataSource || "Unknown";
+      const stockInfoSource = stockInfo.dataSource || "Unknown";
+      const priceHistoryTimestamp = priceData.lastUpdated || 0;
+      const stockInfoTimestamp = stockInfo.lastUpdated || 0;
+
+      // 두 소스 중 더 최신 데이터를 사용
+      if (priceHistoryTimestamp >= stockInfoTimestamp) {
+        return {
+          source: priceHistorySource,
+          lastUpdated: priceHistoryTimestamp,
+        };
+      }
+      return {
+        source: stockInfoSource,
+        lastUpdated: stockInfoTimestamp,
+      };
+    })();
+
     const result: StockAnalysis = {
       stock: stockInfo,
       market: marketCondition,
@@ -119,7 +177,7 @@ export async function GET(request: Request) {
       candles: priceData.candles,
       dataSource: {
         stockInfo: {
-          source: "Finnhub",
+          source: stockInfo.dataSource || "Unknown",
           lastUpdated: stockInfo.lastUpdated,
         },
         priceHistory: {
@@ -136,6 +194,8 @@ export async function GET(request: Request) {
               lastUpdated: Math.floor(Date.now() / 1000), // 현재 시간
             }
           : undefined,
+        // 목표가/손절가 계산에 사용된 데이터 소스
+        targetStopLoss: targetStopLossDataSource,
       },
     };
 

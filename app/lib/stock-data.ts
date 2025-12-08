@@ -8,44 +8,107 @@ import {
   getVIX,
   getCompanyProfile,
 } from "./finnhub";
-import { getEODData } from "./tiingo";
+import { getEODData, getCurrentPriceFromEOD } from "./tiingo";
+import { getCurrentPrice } from "./twelve-data";
 import type { StockInfo, MarketCondition, CandleData } from "../types/stock";
 
 /**
  * 주식 기본 정보를 가져옵니다.
+ * 최신 데이터 우선순위: Twelve Data (실시간) -> Tiingo EOD (최신) -> Finnhub (2일 전, fallback)
  * @param symbol 주식 심볼
  */
 export async function fetchStockInfo(symbol: string): Promise<StockInfo> {
+  // 회사 프로필은 Finnhub에서만 가져올 수 있으므로 병렬로 가져오기
+  const profilePromise = getCompanyProfile(symbol).catch(() => null);
+
+  // 현재가를 여러 소스에서 시도 (최신 데이터 우선)
+  const priceSources: Array<{
+    price: number;
+    timestamp: number;
+    source: string;
+  }> = [];
+
+  // 1. Twelve Data (실시간)
   try {
-    const [quote, profile] = await Promise.all([
-      getQuote(symbol),
-      getCompanyProfile(symbol).catch(() => null), // 프로필은 실패해도 계속 진행
-    ]);
+    const twelveDataPrice = await getCurrentPrice(symbol);
+    if (twelveDataPrice) {
+      priceSources.push({
+        price: twelveDataPrice.price,
+        timestamp: twelveDataPrice.timestamp,
+        source: "Twelve Data",
+      });
+    }
+  } catch {
+    // Twelve Data 실패 시 무시하고 계속 진행
+  }
 
-    // 전일 대비 변화율 계산
-    const changePercent =
-      quote.pc > 0 ? ((quote.c - quote.pc) / quote.pc) * 100 : 0;
+  // 2. Tiingo EOD (최신 일일 데이터)
+  try {
+    const tiingoPrice = await getCurrentPriceFromEOD(symbol);
+    if (tiingoPrice) {
+      priceSources.push({
+        price: tiingoPrice.price,
+        timestamp: tiingoPrice.timestamp,
+        source: "Tiingo (EOD)",
+      });
+    }
+  } catch {
+    // Tiingo 실패 시 무시하고 계속 진행
+  }
 
-    return {
-      symbol: symbol.toUpperCase(),
-      currentPrice: quote.c,
-      changePercent: Math.round(changePercent * 100) / 100,
-      lastUpdated: quote.t, // Finnhub 타임스탬프 (Unix timestamp, 초 단위)
-      companyProfile: profile
-        ? {
-            name: profile.name,
-            exchange: profile.exchange,
-            industry: profile.finnIndustry,
-            website: profile.weburl,
-          }
-        : undefined,
-    };
-  } catch (error) {
-    console.error(`주식 정보를 가져오는 중 오류 발생: ${symbol}`, error);
+  // 3. Finnhub (2일 전 데이터, fallback)
+  try {
+    const quote = await getQuote(symbol);
+    priceSources.push({
+      price: quote.c,
+      timestamp: quote.t,
+      source: "Finnhub",
+    });
+  } catch {
+    // Finnhub도 실패하면 에러 처리
+  }
+
+  // 가장 최신 타임스탬프를 가진 데이터 선택
+  if (priceSources.length === 0) {
     throw new Error(
-      `주식 정보를 가져올 수 없습니다: ${symbol}. 유효한 주식 심볼인지 확인해주세요.`
+      `주식 정보를 가져올 수 없습니다: ${symbol}. 모든 데이터 소스 실패.`
     );
   }
+
+  // 타임스탬프가 가장 큰 것(가장 최신) 선택
+  const latestPrice = priceSources.reduce((prev, current) =>
+    current.timestamp > prev.timestamp ? current : prev
+  );
+
+  // 회사 프로필 가져오기
+  const profile = await profilePromise;
+
+  // 전일 대비 변화율 계산 (Finnhub quote가 있으면 사용, 없으면 0)
+  let changePercent = 0;
+  try {
+    const quote = await getQuote(symbol).catch(() => null);
+    if (quote && quote.pc > 0) {
+      changePercent = ((latestPrice.price - quote.pc) / quote.pc) * 100;
+    }
+  } catch {
+    // 변화율 계산 실패 시 0으로 유지
+  }
+
+  return {
+    symbol: symbol.toUpperCase(),
+    currentPrice: latestPrice.price,
+    changePercent: Math.round(changePercent * 100) / 100,
+    lastUpdated: latestPrice.timestamp,
+    dataSource: latestPrice.source,
+    companyProfile: profile
+      ? {
+          name: profile.name,
+          exchange: profile.exchange,
+          industry: profile.finnIndustry,
+          website: profile.weburl,
+        }
+      : undefined,
+  };
 }
 
 /**
