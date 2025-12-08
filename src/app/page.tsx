@@ -1,41 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { StockAnalysis } from "./types/stock";
-import MarketCondition from "./components/MarketCondition";
-import AIScore from "./components/AIScore";
-import AnalysisDetails from "./components/AnalysisDetails";
-import TargetStopLoss from "./components/TargetStopLoss";
-import VIXWarning from "./components/VIXWarning";
-import CandleChart from "./components/CandleChart";
+import type { StockAnalysisType } from "@entities/stock/model/stock.d";
+import MarketCondition from "@widgets/stock-analysis/ui/market-condition";
+import AIScore from "@widgets/stock-analysis/ui/ai-score";
+import AnalysisDetails from "@widgets/stock-analysis/ui/analysis-details";
+import TargetStopLoss from "@widgets/stock-analysis/ui/target-stop-loss";
+import VIXWarning from "@widgets/stock-analysis/ui/vix-warning";
+import CandleChart from "@widgets/stock-analysis/ui/candle-chart";
 
-/**
- * 타임스탬프를 읽기 쉬운 형식으로 변환합니다.
- */
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp * 1000);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  // 한국 시간으로 변환
-  const koreaDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  const dateStr = koreaDate.toISOString().replace("T", " ").substring(0, 19);
-
-  if (diffMins < 1) {
-    return `방금 전 (${dateStr})`;
-  } else if (diffMins < 60) {
-    return `${diffMins}분 전 (${dateStr})`;
-  } else if (diffHours < 24) {
-    return `${diffHours}시간 전 (${dateStr})`;
-  } else if (diffDays < 7) {
-    return `${diffDays}일 전 (${dateStr})`;
-  } else {
-    return dateStr;
-  }
-}
+import { formatTimestamp } from "@shared/lib/format-timestamp";
 
 /**
  * 메인 페이지 - AI 기반 주식 분석
@@ -43,7 +17,7 @@ function formatTimestamp(timestamp: number): string {
 export default function Home() {
   const [symbol, setSymbol] = useState("BBAI");
   const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<StockAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<StockAnalysisType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -60,7 +34,7 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        `/api/stock/analyze?symbol=${encodeURIComponent(symbol.trim())}`
+        `/api/analyze-stock?symbol=${encodeURIComponent(symbol.trim())}`
       );
 
       if (!response.ok) {
@@ -68,7 +42,7 @@ export default function Home() {
         throw new Error(data.error || "분석 중 오류가 발생했습니다.");
       }
 
-      const data: StockAnalysis = await response.json();
+      const data: StockAnalysisType = await response.json();
       setAnalysis(data);
     } catch (err) {
       setError(

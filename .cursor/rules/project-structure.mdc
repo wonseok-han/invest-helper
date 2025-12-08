@@ -1,0 +1,39 @@
+
+# 프로젝트 구조
+
+## 아키텍처 패턴
+- **FSD (Feature-Sliced Design)**: 레이어와 슬라이스 기반 구조화
+- **Service Layer**: 비즈니스 로직과 API 호출 중앙화
+- **React Query**: 서버 상태 관리 및 캐싱
+
+## 파일 구조 규칙
+- **Entities**: `src/entities/[domain]/` - 비즈니스 엔티티
+- **Features**: `src/features/[action]-[domain]/` - 사용자 상호작용
+- **Widgets**: `src/widgets/[widget-name]/` - 복합 UI 블록
+- **Shared**: `src/shared/` - 공통 코드
+
+## 세그먼트 구조
+각 슬라이스 내부는 다음 세그먼트로 구성:
+- `api/` - HTTP Request Functions
+- `model/` - 도메인 모델, 서비스, 상태 관리
+- `ui/` - UI 컴포넌트
+- `config/` - 설정 파일
+- `lib/` - 비즈니스 로직, 유틸리티
+
+## 네이밍 규칙
+- **파일명**: kebab-case (예: `notification-service.ts`)
+- **컴포넌트**: PascalCase (예: `NotificationCard`)
+- **서비스**: `[domain]-service.ts` (예: `notification-service.ts`)
+- **API**: `[domain]-api.ts` (예: `notification-api.ts`)
+- **Features**: `[action]-[domain]/` (예: `create-notification/`)
+
+## 의존성 규칙
+```
+App → Widgets → Features → Entities → Shared
+```
+- 상위 레이어는 하위 레이어를 import 가능
+- 하위 레이어는 상위 레이어를 import 금지
+- 같은 레이어 간에는 직접 import 금지
+
+- 도구별 store는 `/apps/[app-name]/src/store/[tool-name]-store.ts`에 생성
+- 도구별 타입은 `/apps/[app-name]/src/types/`에 정의

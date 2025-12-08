@@ -3,7 +3,7 @@
  */
 
 /** 시장 상황 정보 */
-export interface MarketCondition {
+export interface MarketConditionType {
   /** VIX 지수 */
   vix: {
     value: number;
@@ -23,7 +23,7 @@ export interface MarketCondition {
 }
 
 /** 캔들 데이터 */
-export interface CandleData {
+export interface CandleDataType {
   /** 시가 */
   open: number;
   /** 고가 */
@@ -39,7 +39,7 @@ export interface CandleData {
 }
 
 /** 주식 기본 정보 */
-export interface StockInfo {
+export interface StockInfoType {
   /** 티커 심볼 */
   symbol: string;
   /** 현재 가격 */
@@ -60,7 +60,7 @@ export interface StockInfo {
 }
 
 /** 트렌드 정보 */
-export interface TrendInfo {
+export interface TrendInfoType {
   /** 트렌드 방향 */
   direction: "uptrend" | "downtrend" | "sideways";
   /** 트렌드 강도 */
@@ -68,7 +68,7 @@ export interface TrendInfo {
 }
 
 /** 에너지 정보 */
-export interface EnergyInfo {
+export interface EnergyInfoType {
   /** 매도 압력 상태 */
   sellingPressure: "increased" | "decreased" | "stable";
   /** 패턴 유형 */
@@ -76,7 +76,7 @@ export interface EnergyInfo {
 }
 
 /** 패턴 유사도 정보 */
-export interface PatternSimilarity {
+export interface PatternSimilarityType {
   /** 유사도 퍼센트 */
   similarity: number;
   /** 참조 수익률 */
@@ -84,7 +84,7 @@ export interface PatternSimilarity {
 }
 
 /** 캔들 패턴 정보 */
-export interface CandlePattern {
+export interface CandlePatternType {
   /** 방향 */
   direction: "up" | "down" | "neutral";
   /** 패턴 이름 */
@@ -92,7 +92,7 @@ export interface CandlePattern {
 }
 
 /** 신호 정보 */
-export interface SignalInfo {
+export interface SignalInfoType {
   /** 신호 유형 */
   type: "bullish-divergence" | "bearish-divergence" | "none";
   /** 액션 */
@@ -102,7 +102,7 @@ export interface SignalInfo {
 }
 
 /** 기술적 지표 */
-export interface TechnicalIndicators {
+export interface TechnicalIndicatorsType {
   /** RSI (Relative Strength Index) - 0-100 */
   rsi?: number;
   /** MACD (Moving Average Convergence Divergence) */
@@ -120,29 +120,29 @@ export interface TechnicalIndicators {
 }
 
 /** AI 분석 결과 */
-export interface AIAnalysis {
+export interface AIAnalysisType {
   /** AI 점수 (0-100) */
   score: number;
   /** 등급 (SSS, SS, S, A, B, C, D, F) */
   grade: string;
   /** 트렌드 정보 */
-  trend: TrendInfo;
+  trend: TrendInfoType;
   /** 에너지 정보 */
-  energy: EnergyInfo;
+  energy: EnergyInfoType;
   /** 패턴 유사도 */
-  patternSimilarity: PatternSimilarity;
+  patternSimilarity: PatternSimilarityType;
   /** OBV 잔여율 */
   obvResidualRate: number;
   /** OBV 강도 */
   obvStrength: "weak" | "moderate" | "strong";
   /** 캔들 패턴 */
-  candlePattern: CandlePattern;
+  candlePattern: CandlePatternType;
   /** 복합 패턴 */
   complexPattern: string | null;
   /** 신호 */
-  signal: SignalInfo;
+  signal: SignalInfoType;
   /** 기술적 지표 */
-  technicalIndicators?: TechnicalIndicators;
+  technicalIndicators?: TechnicalIndicatorsType;
   /** 목표가 */
   targetPrice: number;
   /** 목표가 대비 수익률 */
@@ -158,15 +158,15 @@ export interface AIAnalysis {
 }
 
 /** 전체 주식 분석 결과 */
-export interface StockAnalysis {
+export interface StockAnalysisType {
   /** 주식 기본 정보 */
-  stock: StockInfo;
+  stock: StockInfoType;
   /** 시장 상황 */
-  market: MarketCondition;
+  market: MarketConditionType;
   /** AI 분석 결과 */
-  analysis: AIAnalysis;
+  analysis: AIAnalysisType;
   /** 캔들 데이터 (가격 히스토리) */
-  candles?: CandleData[];
+  candles?: CandleDataType[];
   /** 데이터 소스 정보 */
   dataSource?: {
     /** 주식 기본 정보 (현재가, 변화율 등) */
@@ -196,3 +196,4 @@ export interface StockAnalysis {
     };
   };
 }
+

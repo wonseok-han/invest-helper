@@ -1,0 +1,82 @@
+---
+alwaysApply: true
+---
+
+# TypeScript 코딩 규칙
+
+## 기본 원칙
+
+- 모든 컴포넌트와 함수에 정확한 타입 정의 제공
+- `any` 타입 사용 금지, `unknown` 사용 권장
+- 컴포넌트 Props는 interface로 정의 (확장성 고려)
+- 모든 컴포넌트 Props의 postfix는 Props로 명명
+- 유틸리티 타입은 type으로 정의
+- 모든 공개 인터페이스 타입을 export하여 재사용성 향상
+- 모든 타입의 postfix를 Type으로 명명
+
+## 컴포넌트 타입 정의
+
+- 컴포넌트 Props 인터페이스 명명: `interface ComponentNameProps`
+- 컴포넌트 상태 인터페이스 명명: `type ComponentNameStateType`
+- 복잡한 데이터 구조는 여러 인터페이스로 분할
+- 컴포넌트 ref 타입은 `React.ForwardRefRenderFunction` 사용
+- 모든 콜백 함수의 매개변수와 반환값 타입 명시
+
+## 타입 명명 규칙
+
+- **Props 타입**: `interface ComponentNameProps`
+- **일반 타입**: `type TypeNameType`
+- **유니온 타입**: `type StatusType`, `type ActionType`
+- **열거형**: `type StatusType` (enum 대신 유니온 타입 사용)
+
+## 제네릭 사용
+
+- 적절한 제네릭 사용으로 타입 유연성 향상
+- 제네릭 파라미터에 합리적인 기본 타입과 제약 조건 제공
+- 과도한 제네릭 사용으로 인한 타입 복잡화 방지
+- 복잡한 제네릭은 타입 별칭으로 가독성 향상
+
+## 타입 조합과 확장
+
+- 교차 타입(`&`)으로 여러 타입 병합
+- `Partial<T>`, `Pick<T, K>`, `Omit<T, K>` 등 유틸리티 타입 활용
+- DOM 요소 속성 확장 시 내장 타입 상속
+- 조건부 타입으로 복잡한 타입 로직 처리
+
+## 열거형과 상수
+
+- `enum` 대신 리터럴 유니온 타입과 `as const` 사용
+- 복잡한 열거값에 타입 가드 함수 제공
+- 중요 상수는 `as const`로 타입 엄격성 보장
+- 유니온 타입의 각 값에 적절한 주석 제공
+
+## 타입 추론과 단언
+
+- TypeScript 타입 추론 최대한 활용
+- 필요시에만 타입 단언(`as`) 사용
+- 타입 가드 함수로 런타임 타입 검사
+- 비null 단언 연산자(`!`) 사용 금지
+- `instanceof`와 `typeof`로 타입 가드 구현
+
+## JSDoc 주석
+
+- 복잡한 타입, 함수, 컴포넌트에 JSDoc 주석 추가
+- `@deprecated`로 폐지된 API 표시
+- 매개변수와 반환값의 의미와 제약 조건 설명
+- interface와 중요 타입 정의에 문서 주석 추가
+- `@template`로 제네릭 파라미터 표시
+
+## 타입 호환성
+
+- React 버전 간 타입 정의 호환성 보장
+- 실험적이거나 불안정한 TypeScript 기능 사용 금지
+- 서드파티 라이브러리 타입 선언 파일 작성
+- 조건부 타입으로 복잡한 타입 로직 처리
+
+## 엄격한 TypeScript 사용
+
+- 컴포넌트 타입과 인터페이스 export
+- `any` 대신 `unknown` 사용
+- 명확한 명명 규칙 사용
+- 타입 export 시 `export type` 사용
+- 컴포넌트 속성에 JSDoc 주석으로 용도 설명

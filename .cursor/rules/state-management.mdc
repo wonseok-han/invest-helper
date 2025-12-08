@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+---
+
+# Zustand 상태 관리 규칙
+
+## 기본 패턴
+- 각 도구별로 별도의 store 생성 (예: `json-store.ts`, `diff-store.ts`)
+- persist 미들웨어를 사용하여 로컬 스토리지 연동
+- hydration 상태 관리 필수 (`hasHydrated` 플래그 사용)
+
+## Store 구조
+```typescript
+interface StoreState {
+  // 상태
+  data: DataType;
+  isLoading: boolean;
+  error: string | null;
+
+  // 액션
+  setData: (data: DataType) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+
+  // hydration 상태
+  hasHydrated: boolean;
+}
+```
+
+## Persist 설정
+- localStorage 키 이름 지정
+- onRehydrateStorage에서 hasHydrated 플래그 설정
+- 초기 상태와 hydration 상태 분리
+
+## Store 사용 패턴
+- 컴포넌트에서 useStore 훅 사용
+- 상태 변경은 store의 액션 함수 사용
+- hydration 완료 후 렌더링 처리

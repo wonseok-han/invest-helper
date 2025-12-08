@@ -1,0 +1,144 @@
+
+# UI 컴포넌트 작성 가이드라인
+
+## 컴포넌트 생성 시 필수 규칙
+
+### 1. 파일 위치 결정
+```typescript
+// 공통 컴포넌트 (여러 도구에서 사용)
+packages/ui/src/components/[component-name].tsx
+
+// 앱별 공통 컴포넌트 (특정 앱에서만 사용하지만 여러 곳에서 재사용)
+apps/[app-name]/src/shared/ui/[component-name].tsx
+apps/[app-name]/src/shared/ui/[component-name]/[component-name].tsx
+
+// 도구별 컴포넌트 (특정 도구에서만 사용)
+apps/[app-name]/src/entities/[domain]/ui/[component-name].tsx
+apps/[app-name]/src/features/[action]-[domain]/ui/[component-name].tsx
+```
+
+### 2. 컴포넌트 기본 구조
+```typescript
+// ✅ 올바른 예시
+interface ComponentNameProps {
+  // props 정의
+}
+
+export function ComponentName({ prop1, prop2 }: ComponentNameProps) {
+  return (
+    <div className="tailwind-style">
+      {/* 컴포넌트 내용 */}
+    </div>
+  );
+}
+```
+
+### 3. 반응형 디자인 패턴
+```typescript
+// ✅ 모바일/데스크톱 분기 처리
+import { useDeviceStore } from '@shared/store/device-store';
+
+export function ResponsiveComponent() {
+  const { isMobile } = useDeviceStore();
+
+  return (
+    <div className={isMobile ? 'mobile-layout' : 'desktop-layout'}>
+      {isMobile ? <MobileView /> : <DesktopView />}
+    </div>
+  );
+}
+```
+
+### 4. 한국어 UI 텍스트
+```typescript
+// ✅ 올바른 예시
+const messages = {
+  success: '성공적으로 처리되었습니다.',
+  error: '오류가 발생했습니다. 다시 시도해주세요.',
+  loading: '처리 중입니다...',
+  empty: '데이터가 없습니다.',
+} as const;
+
+// ❌ 잘못된 예시
+const messages = {
+  success: 'Success!',
+  error: 'Error occurred',
+};
+```
+
+### 5. SVG 아이콘 사용
+```typescript
+// ✅ 올바른 예시
+import { IconLogo } from '@assets/icons/icon-logo';
+
+export function Header() {
+  return (
+    <header>
+      <IconLogo className="w-8 h-8" />
+    </header>
+  );
+}
+```
+
+### 6. 에러 처리 UI
+```typescript
+// ✅ 에러 상태 처리
+export function DataComponent() {
+  const { data, error, isLoading } = useQuery();
+
+  if (isLoading) return <div>로딩 중...</div>;
+  if (error) return <div>오류가 발생했습니다: {error.message}</div>;
+  if (!data) return <div>데이터가 없습니다.</div>;
+
+  return <div>{/* 데이터 표시 */}</div>;
+}
+```
+
+### 7. 접근성 고려사항
+```typescript
+// ✅ 접근성 속성 포함
+export function Button({ children, onClick, disabled }: ButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label="버튼 설명"
+      className="px-4 py-2 bg-blue-500 text-white rounded"
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+## 금지사항
+
+### ❌ 하드코딩된 텍스트
+```typescript
+// ❌ 잘못된 예시
+return <div>Success!</div>;
+return <div>Error occurred</div>;
+```
+
+### ❌ 인라인 스타일
+```typescript
+// ❌ 잘못된 예시
+<div style={{ color: 'red', fontSize: '16px' }}>텍스트</div>
+
+// ✅ 올바른 예시
+<div className="text-red-500 text-base">텍스트</div>
+```
+
+### ❌ 복잡한 조건부 렌더링
+```typescript
+// ❌ 잘못된 예시
+{isLoading && !error && !data && <Loading />}
+{!isLoading && error && !data && <Error />}
+{!isLoading && !error && data && <Data />}
+
+// ✅ 올바른 예시
+if (isLoading) return <Loading />;
+if (error) return <Error error={error} />;
+if (!data) return <Empty />;
+return <Data data={data} />;
+```

@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+---
+
+# 코딩 패턴 및 파일 명명 규칙
+
+## 파일 명명 규칙
+- **컴포넌트**: kebab-case (예: `dashboard-content.tsx`)
+- **훅**: kebab-case + `use` 접두사 (예: `use-device-store.ts`)
+- **유틸리티**: kebab-case (예: `menu.ts`)
+- **타입 정의**: kebab-case + `.d.ts` (예: `sidebar.d.ts`)
+
+## 변수 및 상수 네이밍 규칙
+
+### 변수 네이밍
+- **일반 변수**: camelCase (예: `userName`, `isLoading`)
+- **불린 변수**: `is`, `has`, `can`, `should` 접두사 사용 (예: `isVisible`, `hasError`, `canEdit`)
+- **함수**: camelCase + 동사 접두사 (예: `getUserData`, `handleClick`, `validateInput`)
+- **이벤트 핸들러**: `handle` 접두사 (예: `handleSubmit`, `handleChange`)
+
+### 상수 네이밍
+- **일반 상수**: UPPER_SNAKE_CASE (예: `API_BASE_URL`, `MAX_RETRY_COUNT`)
+- **메뉴 아이템**: UPPER_SNAKE_CASE (예: `SIDEBAR_MENU_ITEMS`)
+- **설정 상수**: UPPER_SNAKE_CASE (예: `DEFAULT_TIMEOUT`, `ERROR_MESSAGES`)
+- **타입 상수**: UPPER_SNAKE_CASE (예: `USER_ROLES`, `STATUS_TYPES`)
+
+### 객체 및 배열 네이밍
+- **객체**: camelCase (예: `userConfig`, `apiResponse`)
+- **배열**: 복수형 camelCase (예: `userList`, `menuItems`)
+- **맵/딕셔너리**: `Map` 접미사 또는 복수형 (예: `userMap`, `configMap`)
+
+## 컴포넌트 작성
+- 모든 컴포넌트는 TypeScript로 작성
+- Props 인터페이스는 컴포넌트와 같은 파일에 정의
+- React.memo를 적절히 사용하여 성능 최적화
+- 'use client' 지시어는 클라이언트 컴포넌트에만 사용
+
+## 스타일링
+- Tailwind CSS 클래스 우선 사용
+- 커스텀 CSS는 최소화
+- 반응형 디자인 필수 (모바일, 태블릿, 데스크톱)
+
+## 에러 처리
+- try-catch 블록 적절히 사용
+- 사용자 친화적인 에러 메시지
+- 네트워크 요청 실패 처리

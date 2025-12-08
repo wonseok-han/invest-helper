@@ -1,0 +1,128 @@
+---
+alwaysApply: true
+---
+
+# 코멘트 작성 규칙
+
+## 일반 코멘트 원칙
+- **언어**: 모든 코멘트는 한국어로 작성
+- **명확성**: 코드만 봐도 알 수 있는 내용은 코멘트 생략
+- **최신성**: 코드 변경 시 관련 코멘트도 함께 업데이트
+- **간결성**: 불필요한 설명은 제거하고 핵심만 작성
+
+## 함수 및 클래스 코멘트
+```typescript
+/**
+ * 사용자 정보를 가져오는 함수
+ * @param {string} userId - 사용자 ID
+ * @param {boolean} includeProfile - 프로필 정보 포함 여부
+ * @returns {UserInfo | null} 사용자 정보 객체 또는 null
+ */
+async function getUserInfo(userId: string, includeProfile = false): Promise<UserInfo | null> {
+  // 구현...
+}
+```
+
+## 복잡한 로직 코멘트
+```typescript
+// 복잡한 비즈니스 로직의 경우
+const processedData = rawData
+  .filter(item => item.status === 'active') // 활성 상태인 항목만 필터링
+  .map(item => ({
+    ...item,
+    score: calculateScore(item.metrics), // 메트릭 기반 점수 계산
+    priority: determinePriority(item.risk) // 위험도 기반 우선순위 결정
+  }))
+  .sort((a, b) => b.priority - a.priority); // 우선순위 내림차순 정렬
+```
+
+## 섹션 구분 코멘트
+```typescript
+// ===== 상태 관리 =====
+const [isLoading, setIsLoading] = useState(false);
+const [data, setData] = useState<Data[]>([]);
+
+// ===== 이벤트 핸들러 =====
+/**
+ * Submit 이벤트 핸들러
+ * @param {FormData} formData - 폼 데이터
+ */
+const handleSubmit = async (formData: FormData) => {
+  // 구현...
+};
+
+// ===== 유틸리티 함수 =====
+/**
+ * Date 형태의 값을 포맷팅하는 함수
+ * @param {Date} date - 폼 데이터
+ * @returns {string} 포맷팅된 Date 문자열
+ */
+const formatDate = (date: Date): string => {
+  // 구현...
+};
+```
+
+## TODO 및 FIXME 코멘트
+```typescript
+// TODO: 성능 최적화 필요 - 대용량 데이터 처리 시 메모리 사용량 개선
+// FIXME: 에지 케이스 처리 - 빈 배열이 전달될 때 예외 발생 가능
+// NOTE: 임시 해결책 - 추후 더 나은 방법으로 교체 예정
+```
+
+## API 및 외부 서비스 코멘트
+```typescript
+/**
+ * NVD API에서 최근 CVE 데이터를 가져옵니다
+ * @returns CVE 데이터 배열
+ * @throws 네트워크 오류 또는 API 응답 오류
+ */
+async function fetchRecentCVEs(): Promise<CVEDataType[]> {
+  // 구현...
+}
+```
+
+## 컴포넌트 코멘트
+```typescript
+/**
+ * 대시보드 메인 콘텐츠 컴포넌트
+ *
+ * @param props
+ * @param props.userData - 사용자 데이터
+ * @param props.onRefresh - 새로고침 콜백
+ * @param props.isLoading - 로딩 상태
+ */
+export function DashboardContent({ userData, onRefresh, isLoading }: DashboardContentProps) {
+  // 구현...
+}
+```
+
+## 조건부 로직 코멘트
+```typescript
+// 사용자 권한에 따른 조건부 렌더링
+if (userRole === 'admin') {
+  // 관리자 전용 기능 표시
+  return <AdminPanel />;
+} else if (userRole === 'moderator') {
+  // 중재자 기능 표시
+  return <ModeratorPanel />;
+} else {
+  // 일반 사용자 기능 표시
+  return <UserPanel />;
+}
+```
+
+## 에러 처리 코멘트
+```typescript
+try {
+  const result = await riskyOperation();
+  return result;
+} catch (error) {
+  // 네트워크 오류인 경우 재시도 로직
+  if (error instanceof NetworkError) {
+    return await retryOperation();
+  }
+
+  // 기타 오류는 상위로 전파
+  throw error;
+}
+```

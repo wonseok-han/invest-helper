@@ -7,17 +7,23 @@ import {
   getStockCandles,
   getVIX,
   getCompanyProfile,
-} from "./finnhub";
-import { getEODData, getCurrentPriceFromEOD } from "./tiingo";
-import { getCurrentPrice } from "./twelve-data";
-import type { StockInfo, MarketCondition, CandleData } from "../types/stock";
+} from "../api/finnhub-api";
+import { getEODData, getCurrentPriceFromEOD } from "../api/tiingo-api";
+import { getCurrentPrice } from "../api/twelve-data-api";
+import type {
+  StockInfoType,
+  MarketConditionType,
+  CandleDataType,
+} from "../model/stock.d";
 
 /**
  * 주식 기본 정보를 가져옵니다.
  * 최신 데이터 우선순위: Twelve Data (실시간) -> Tiingo EOD (최신) -> Finnhub (2일 전, fallback)
  * @param symbol 주식 심볼
  */
-export async function fetchStockInfo(symbol: string): Promise<StockInfo> {
+export async function fetchStockInfo(
+  symbol: string
+): Promise<StockInfoType> {
   // 회사 프로필은 Finnhub에서만 가져올 수 있으므로 병렬로 가져오기
   const profilePromise = getCompanyProfile(symbol).catch(() => null);
 
@@ -121,7 +127,7 @@ export async function fetchPriceHistory(
   symbol: string,
   days: number = 30
 ): Promise<{
-  candles: CandleData[];
+  candles: CandleDataType[];
   lastUpdated?: number; // Unix timestamp (초 단위)
   dataSource?: string; // 데이터 소스 정보
 } | null> {
@@ -229,7 +235,7 @@ export async function fetchPriceHistory(
 /**
  * 시장 상황을 가져옵니다.
  */
-export async function fetchMarketCondition(): Promise<MarketCondition> {
+export async function fetchMarketCondition(): Promise<MarketConditionType> {
   try {
     // VIX 지수 가져오기
     const vixValue = await getVIX();

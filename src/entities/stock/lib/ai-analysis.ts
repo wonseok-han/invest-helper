@@ -3,15 +3,15 @@
  */
 
 import type {
-  AIAnalysis,
-  TrendInfo,
-  EnergyInfo,
-  PatternSimilarity,
-  CandlePattern,
-  SignalInfo,
-  TechnicalIndicators,
-  CandleData,
-} from "../types/stock";
+  AIAnalysisType,
+  TrendInfoType,
+  EnergyInfoType,
+  PatternSimilarityType,
+  CandlePatternType,
+  SignalInfoType,
+  TechnicalIndicatorsType,
+  CandleDataType,
+} from '../model/stock.d';
 
 /**
  * AI 점수를 계산하고 등급을 반환합니다.
@@ -19,38 +19,38 @@ import type {
  * @returns AI 점수와 등급
  */
 export function calculateAIScore(factors: {
-  trend: TrendInfo;
-  energy: EnergyInfo;
-  patternSimilarity: PatternSimilarity;
+  trend: TrendInfoType;
+  energy: EnergyInfoType;
+  patternSimilarity: PatternSimilarityType;
   obvResidualRate: number;
-  candlePattern: CandlePattern;
-  signal: SignalInfo;
-  technicalIndicators?: TechnicalIndicators;
+  candlePattern: CandlePatternType;
+  signal: SignalInfoType;
+  technicalIndicators?: TechnicalIndicatorsType;
 }): { score: number; grade: string } {
   let score = 50; // 기본 점수
 
   // 트렌드 점수 (0-20점)
-  if (factors.trend.direction === "uptrend") {
+  if (factors.trend.direction === 'uptrend') {
     score +=
-      factors.trend.strength === "strong"
+      factors.trend.strength === 'strong'
         ? 20
-        : factors.trend.strength === "moderate"
+        : factors.trend.strength === 'moderate'
         ? 15
         : 10;
-  } else if (factors.trend.direction === "downtrend") {
+  } else if (factors.trend.direction === 'downtrend') {
     score -=
-      factors.trend.strength === "strong"
+      factors.trend.strength === 'strong'
         ? 20
-        : factors.trend.strength === "moderate"
+        : factors.trend.strength === 'moderate'
         ? 15
         : 10;
   }
 
   // 에너지 점수 (0-15점)
-  if (factors.energy.sellingPressure === "decreased") {
-    score += factors.energy.pattern === "golden-cross" ? 15 : 10;
-  } else if (factors.energy.sellingPressure === "increased") {
-    score -= factors.energy.pattern === "dead-cross" ? 15 : 10;
+  if (factors.energy.sellingPressure === 'decreased') {
+    score += factors.energy.pattern === 'golden-cross' ? 15 : 10;
+  } else if (factors.energy.sellingPressure === 'increased') {
+    score -= factors.energy.pattern === 'dead-cross' ? 15 : 10;
   }
 
   // 패턴 유사도 점수 (0-15점)
@@ -69,21 +69,21 @@ export function calculateAIScore(factors: {
   }
 
   // 캔들 패턴 점수 (0-10점)
-  if (factors.candlePattern.direction === "up") {
+  if (factors.candlePattern.direction === 'up') {
     score += 10;
-  } else if (factors.candlePattern.direction === "down") {
+  } else if (factors.candlePattern.direction === 'down') {
     score -= 10;
   }
 
   // 신호 점수 (0-15점)
   if (
-    factors.signal.type === "bullish-divergence" &&
-    factors.signal.action === "buy"
+    factors.signal.type === 'bullish-divergence' &&
+    factors.signal.action === 'buy'
   ) {
     score += 15;
   } else if (
-    factors.signal.type === "bearish-divergence" &&
-    factors.signal.action === "sell"
+    factors.signal.type === 'bearish-divergence' &&
+    factors.signal.action === 'sell'
   ) {
     score -= 15;
   }
@@ -132,21 +132,21 @@ export function calculateAIScore(factors: {
   // 등급 결정
   let grade: string;
   if (score >= 90) {
-    grade = "SSS";
+    grade = 'SSS';
   } else if (score >= 80) {
-    grade = "SS";
+    grade = 'SS';
   } else if (score >= 70) {
-    grade = "S";
+    grade = 'S';
   } else if (score >= 60) {
-    grade = "A";
+    grade = 'A';
   } else if (score >= 50) {
-    grade = "B";
+    grade = 'B';
   } else if (score >= 40) {
-    grade = "C";
+    grade = 'C';
   } else if (score >= 30) {
-    grade = "D";
+    grade = 'D';
   } else {
-    grade = "F";
+    grade = 'F';
   }
 
   return { score, grade };
@@ -163,7 +163,7 @@ export function calculateAIScore(factors: {
  */
 export function calculateTargetAndStopLoss(
   currentPrice: number,
-  trend: TrendInfo,
+  trend: TrendInfoType,
   support: number,
   resistance: number
 ): {
@@ -194,7 +194,7 @@ export function calculateTargetAndStopLoss(
   // 손절가: 항상 현재 가격보다 낮아야 함 (손실 방지)
   // 리스크/리워드 비율: 최소 2:1 이상 유지
 
-  if (trend.direction === "uptrend") {
+  if (trend.direction === 'uptrend') {
     // 상승 트렌드: 지지선을 기준으로 손절가를 먼저 설정
     // 손절가는 지지선을 기준으로 하되, 너무 낮으면 제한
     if (support < currentPrice && support > currentPrice * 0.85) {
@@ -235,7 +235,7 @@ export function calculateTargetAndStopLoss(
       // 목표가가 너무 높아지지 않도록 제한 (최대 15% 상승)
       targetPrice = Math.min(targetPrice, currentPrice * 1.15);
     }
-  } else if (trend.direction === "downtrend") {
+  } else if (trend.direction === 'downtrend') {
     // 하락 트렌드: 매수 비추천
     // 보수적으로 설정하되, 리스크/리워드 비율은 유지
     // 목표가: 현재가의 5% 상승 (보수적)
@@ -347,11 +347,11 @@ function calculateVolatility(prices: number[]): number {
  * @param candles 캔들 데이터 배열
  * @returns 캔들 패턴 정보
  */
-function analyzeCandlePattern(candles: CandleData[]): CandlePattern {
+function analyzeCandlePattern(candles: CandleDataType[]): CandlePatternType {
   if (candles.length === 0) {
     return {
-      direction: "neutral",
-      pattern: "None",
+      direction: 'neutral',
+      pattern: 'None',
     };
   }
 
@@ -365,37 +365,37 @@ function analyzeCandlePattern(candles: CandleData[]): CandlePattern {
   const totalRange = lastCandle.high - lastCandle.low;
 
   // 캔들 패턴 판단
-  let pattern = "Normal";
-  let direction: "up" | "down" | "neutral" = "neutral";
+  let pattern = 'Normal';
+  let direction: 'up' | 'down' | 'neutral' = 'neutral';
 
   if (totalRange > 0) {
     // 상승 캔들
     if (lastCandle.close > lastCandle.open) {
-      direction = "up";
+      direction = 'up';
       // Hammer 패턴 (긴 하단 꼬리)
       if (lowerShadow > body * 2 && upperShadow < body * 0.5) {
-        pattern = "Hammer";
+        pattern = 'Hammer';
       }
       // Doji 패턴 (작은 몸통)
       else if (body < totalRange * 0.1) {
-        pattern = "Doji";
+        pattern = 'Doji';
       }
     }
     // 하락 캔들
     else if (lastCandle.close < lastCandle.open) {
-      direction = "down";
+      direction = 'down';
       // Shooting Star 패턴 (긴 상단 꼬리)
       if (upperShadow > body * 2 && lowerShadow < body * 0.5) {
-        pattern = "Shooting Star";
+        pattern = 'Shooting Star';
       }
       // Doji 패턴
       else if (body < totalRange * 0.1) {
-        pattern = "Doji";
+        pattern = 'Doji';
       }
     }
     // Doji (시가 = 종가)
     else {
-      pattern = "Doji";
+      pattern = 'Doji';
     }
   }
 
@@ -412,13 +412,13 @@ function analyzeCandlePattern(candles: CandleData[]): CandlePattern {
  */
 export function getOBVStrength(
   obvResidualRate: number
-): "weak" | "moderate" | "strong" {
+): 'weak' | 'moderate' | 'strong' {
   if (obvResidualRate >= 1.05) {
-    return "strong";
+    return 'strong';
   } else if (obvResidualRate >= 0.95) {
-    return "moderate";
+    return 'moderate';
   }
-  return "weak";
+  return 'weak';
 }
 
 /**
@@ -426,9 +426,9 @@ export function getOBVStrength(
  */
 export function performAIAnalysis(stockData: {
   currentPrice: number;
-  candles: CandleData[];
-  technicalIndicators?: TechnicalIndicators;
-}): AIAnalysis {
+  candles: CandleDataType[];
+  technicalIndicators?: TechnicalIndicatorsType;
+}): AIAnalysisType {
   // currentPrice 유효성 검사
   if (
     !stockData.currentPrice ||
@@ -436,7 +436,7 @@ export function performAIAnalysis(stockData: {
     isNaN(stockData.currentPrice) ||
     !isFinite(stockData.currentPrice)
   ) {
-    throw new Error("유효하지 않은 현재가입니다.");
+    throw new Error('유효하지 않은 현재가입니다.');
   }
 
   // 캔들 데이터에서 가격과 거래량 추출
@@ -473,8 +473,8 @@ export function performAIAnalysis(stockData: {
 
   // 트렌드 분석 (최근 데이터 중심)
   let priceChange = 0;
-  let trendDirection: "uptrend" | "downtrend" | "sideways" = "sideways";
-  let trendStrength: "weak" | "moderate" | "strong" = "weak";
+  let trendDirection: 'uptrend' | 'downtrend' | 'sideways' = 'sideways';
+  let trendStrength: 'weak' | 'moderate' | 'strong' = 'weak';
 
   if (priceHistory.length > 1) {
     // 전체 기간 변화
@@ -493,33 +493,33 @@ export function performAIAnalysis(stockData: {
     // 트렌드 방향 결정
     const changePercent = (priceChange / stockData.currentPrice) * 100;
     if (changePercent > 2) {
-      trendDirection = "uptrend";
+      trendDirection = 'uptrend';
     } else if (changePercent < -2) {
-      trendDirection = "downtrend";
+      trendDirection = 'downtrend';
     } else {
-      trendDirection = "sideways";
+      trendDirection = 'sideways';
     }
 
     // 트렌드 강도 결정
     const absChangePercent = Math.abs(changePercent);
     if (absChangePercent > 10) {
-      trendStrength = "strong";
+      trendStrength = 'strong';
     } else if (absChangePercent > 5) {
-      trendStrength = "moderate";
+      trendStrength = 'moderate';
     } else {
-      trendStrength = "weak";
+      trendStrength = 'weak';
     }
   }
 
-  const trend: TrendInfo = {
+  const trend: TrendInfoType = {
     direction: trendDirection,
     strength: trendStrength,
   };
 
   // 에너지 분석 (매도 압력)
   // 최근 가격 움직임과 거래량을 종합적으로 분석
-  let sellingPressure: "increased" | "decreased" | "stable" = "stable";
-  let pattern: "golden-cross" | "dead-cross" | "none" = "none";
+  let sellingPressure: 'increased' | 'decreased' | 'stable' = 'stable';
+  let pattern: 'golden-cross' | 'dead-cross' | 'none' = 'none';
 
   if (priceHistory.length >= 2) {
     const recentPrices = priceHistory.slice(-5);
@@ -537,34 +537,34 @@ export function performAIAnalysis(stockData: {
 
     // 가격이 상승하면 매도 압력 감소, 하락하면 매도 압력 증가
     if (recentAvg > olderAvg * 1.02) {
-      sellingPressure = "decreased";
-      pattern = "golden-cross"; // 상승 추세
+      sellingPressure = 'decreased';
+      pattern = 'golden-cross'; // 상승 추세
     } else if (recentAvg < olderAvg * 0.98) {
-      sellingPressure = "increased";
-      pattern = "dead-cross"; // 하락 추세
+      sellingPressure = 'increased';
+      pattern = 'dead-cross'; // 하락 추세
     } else {
-      sellingPressure = "stable";
-      pattern = "none";
+      sellingPressure = 'stable';
+      pattern = 'none';
     }
   } else {
     // 데이터 부족 시 기본값
     sellingPressure =
-      priceChange > 0 ? "decreased" : priceChange < 0 ? "increased" : "stable";
+      priceChange > 0 ? 'decreased' : priceChange < 0 ? 'increased' : 'stable';
     pattern =
       priceChange > 0
-        ? "golden-cross"
+        ? 'golden-cross'
         : priceChange < 0
-        ? "dead-cross"
-        : "none";
+        ? 'dead-cross'
+        : 'none';
   }
 
-  const energy: EnergyInfo = {
+  const energy: EnergyInfoType = {
     sellingPressure,
     pattern,
   };
 
   // 패턴 유사도 (데이터가 충분할 때만 계산, 아니면 기본값)
-  let patternSimilarity: PatternSimilarity;
+  let patternSimilarity: PatternSimilarityType;
   if (priceHistory.length >= 10) {
     // 최근 5일과 그 이전 5일의 패턴 비교
     const recentTrend = priceHistory.slice(-5);
@@ -669,16 +669,18 @@ export function performAIAnalysis(stockData: {
   const obvStrength = getOBVStrength(obvResidualRate);
 
   // 캔들 패턴 분석 (실제 캔들 데이터 사용)
-  const candlePattern: CandlePattern = analyzeCandlePattern(stockData.candles);
+  const candlePattern: CandlePatternType = analyzeCandlePattern(
+    stockData.candles
+  );
 
   // 신호
-  const signal: SignalInfo = {
-    type: priceChange > 0 ? "bullish-divergence" : "bearish-divergence",
-    action: priceChange > 0 ? "buy" : "sell",
+  const signal: SignalInfoType = {
+    type: priceChange > 0 ? 'bullish-divergence' : 'bearish-divergence',
+    action: priceChange > 0 ? 'buy' : 'sell',
     description:
       priceChange > 0
-        ? "Bullish Divergence Detected (Buy)"
-        : "Bearish Divergence Detected (Sell)",
+        ? 'Bullish Divergence Detected (Buy)'
+        : 'Bearish Divergence Detected (Sell)',
   };
 
   // 지지선과 저항선 계산 (실제 캔들 데이터 기반)

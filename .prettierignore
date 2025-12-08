@@ -1,0 +1,28 @@
+# 의존성
+node_modules/
+pnpm-lock.yaml
+
+# 빌드 결과물
+dist/
+.next/
+.turbo/
+
+# 로그 파일
+*.log
+*.log.*
+
+# 환경 설정
+.env
+.env.*
+
+# 자동 생성된 파일
+coverage/
+*.tsbuildinfo
+
+# 바이너리 파일
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
