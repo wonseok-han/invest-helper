@@ -11,6 +11,10 @@ import {
   fetchMarketCondition,
 } from '@entities/stock/lib/stock-data';
 import { getTechnicalIndicators } from '@entities/stock/api/twelve-data-api';
+import {
+  analyzeWithLLM,
+  combineAnalysis,
+} from '@entities/stock/lib/llm-analysis';
 
 /**
  * GET /api/analyze-stock?symbol=XXX
@@ -63,20 +67,40 @@ export async function GET(request: Request) {
       }
 
       // 현재 가격만으로 기본 분석 수행 (캔들 데이터 생성)
-      const analysis = performAIAnalysis({
+      const dummyCandles = [
+        {
+          open: stockInfo.currentPrice,
+          high: stockInfo.currentPrice,
+          low: stockInfo.currentPrice,
+          close: stockInfo.currentPrice,
+          volume: 0,
+          timestamp: stockInfo.lastUpdated,
+        },
+      ];
+
+      const technicalAnalysis = performAIAnalysis({
         currentPrice: stockInfo.currentPrice,
-        candles: [
-          {
-            open: stockInfo.currentPrice,
-            high: stockInfo.currentPrice,
-            low: stockInfo.currentPrice,
-            close: stockInfo.currentPrice,
-            volume: 0,
-            timestamp: stockInfo.lastUpdated,
-          },
-        ],
+        candles: dummyCandles,
         technicalIndicators: technicalIndicators || undefined,
       });
+
+      // LLM 분석 시도 (실패해도 계속 진행)
+      let llmAnalysis = null;
+      try {
+        llmAnalysis = await analyzeWithLLM({
+          symbol,
+          stockInfo,
+          marketCondition,
+          candles: dummyCandles,
+          technicalIndicators: technicalIndicators || undefined,
+          technicalAnalysis,
+        });
+      } catch (error) {
+        console.warn('LLM 분석 실패 (계속 진행):', error);
+      }
+
+      // 기술적 분석과 LLM 분석 결과 통합
+      const analysis = combineAnalysis(technicalAnalysis, llmAnalysis);
 
       // 가격 히스토리가 없는 경우, 현재가만 사용하므로 stockInfo 소스 사용
       const targetStopLossDataSource = {
@@ -109,7 +133,7 @@ export async function GET(request: Request) {
           },
           marketCondition: {
             source: 'Finnhub',
-            lastUpdated: Math.floor(Date.now() / 1000), // 현재 시간 (VIX는 실시간)
+            lastUpdated: Math.floor(Date.now() / 1000), // 현재 시간
           },
           technicalIndicators: technicalIndicators
             ? {
@@ -136,12 +160,30 @@ export async function GET(request: Request) {
       );
     }
 
-    // AI 분석 수행 (실제 캔들 데이터 사용)
-    const analysis = performAIAnalysis({
+    // 1. 기술적 분석 수행 (실제 캔들 데이터 사용)
+    const technicalAnalysis = performAIAnalysis({
       currentPrice: stockInfo.currentPrice,
       candles: priceData.candles,
       technicalIndicators: technicalIndicators || undefined,
     });
+
+    // 2. LLM 분석 수행 (비동기, 실패해도 계속 진행)
+    let llmAnalysis = null;
+    try {
+      llmAnalysis = await analyzeWithLLM({
+        symbol,
+        stockInfo,
+        marketCondition,
+        candles: priceData.candles,
+        technicalIndicators: technicalIndicators || undefined,
+        technicalAnalysis,
+      });
+    } catch (error) {
+      console.warn('LLM 분석 실패 (계속 진행):', error);
+    }
+
+    // 3. 기술적 분석과 LLM 분석 결과 통합
+    const analysis = combineAnalysis(technicalAnalysis, llmAnalysis);
 
     // 목표가/손절가 계산에 사용된 데이터 소스 결정
     // 계산에 사용되는 데이터:
@@ -186,7 +228,7 @@ export async function GET(request: Request) {
         },
         marketCondition: {
           source: 'Finnhub',
-          lastUpdated: Math.floor(Date.now() / 1000), // 현재 시간 (VIX는 실시간)
+          lastUpdated: Math.floor(Date.now() / 1000), // 현재 시간
         },
         technicalIndicators: technicalIndicators
           ? {

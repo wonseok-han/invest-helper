@@ -25,7 +25,7 @@ export interface TiingoEODData {
 /**
  * Tiingo API 기본 URL
  */
-const TIINGO_API_BASE = "https://api.tiingo.com/tiingo";
+const TIINGO_API_BASE = 'https://api.tiingo.com/tiingo';
 
 /**
  * Tiingo API 키를 가져옵니다.
@@ -44,17 +44,17 @@ async function fetchTiingo<T>(
   const apiKey = getApiKey();
 
   if (!apiKey) {
-    throw new Error("TIINGO_API_KEY 환경 변수가 설정되지 않았습니다.");
+    throw new Error('TIINGO_API_KEY 환경 변수가 설정되지 않았습니다.');
   }
 
-  const queryParams = params ? new URLSearchParams(params).toString() : "";
+  const queryParams = params ? new URLSearchParams(params).toString() : '';
   const url = `${TIINGO_API_BASE}${endpoint}${
-    queryParams ? `?${queryParams}` : ""
+    queryParams ? `?${queryParams}` : ''
   }`;
 
   const response = await fetch(url, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Token ${apiKey}`,
     },
     next: { revalidate: 3600 }, // 1시간 캐시
@@ -80,12 +80,12 @@ export async function getEODData(
   endDate?: string
 ): Promise<TiingoEODData[]> {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split('T')[0];
     const defaultStartDate =
       startDate ||
       new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
         .toISOString()
-        .split("T")[0];
+        .split('T')[0];
     const defaultEndDate = endDate || today;
 
     return fetchTiingo<TiingoEODData[]>(
@@ -96,7 +96,7 @@ export async function getEODData(
       }
     );
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(`Tiingo EOD 데이터를 가져올 수 없습니다: ${symbol}`, error);
     }
     throw error;
@@ -112,15 +112,15 @@ export async function getCurrentPriceFromEOD(
   symbol: string
 ): Promise<{ price: number; timestamp: number } | null> {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split('T')[0];
     const eodData = await getEODData(symbol, today, today);
 
     if (eodData && eodData.length > 0) {
       // 가장 최신 데이터 사용
       const latest = eodData[eodData.length - 1];
-      const dateOnly = latest.date.split("T")[0];
+      const dateOnly = latest.date.split('T')[0];
       const timestamp = Math.floor(
-        new Date(dateOnly + "T16:00:00Z").getTime() / 1000
+        new Date(dateOnly + 'T16:00:00Z').getTime() / 1000
       );
 
       return {
@@ -131,8 +131,73 @@ export async function getCurrentPriceFromEOD(
 
     return null;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(`Tiingo 현재가를 가져올 수 없습니다: ${symbol}`, error);
+    }
+    return null;
+  }
+}
+
+/**
+ * 시장 지수를 가져옵니다 (Tiingo).
+ * @param symbol 지수 심볼 (예: SPY for S&P 500, QQQ for NASDAQ)
+ * @returns 현재가, 변화율, 타임스탬프, 실패 시 null
+ */
+export async function getMarketIndexFromTiingo(
+  symbol: string
+): Promise<{ price: number; changePercent: number; timestamp: number } | null> {
+  try {
+    // 최신 EOD 데이터 가져오기
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+
+    const eodData = await getEODData(symbol, yesterday, today);
+
+    if (eodData && eodData.length >= 2) {
+      // 오늘과 어제 데이터 비교
+      const todayData = eodData[eodData.length - 1];
+      const yesterdayData = eodData[eodData.length - 2];
+
+      const price = todayData.adjClose || todayData.close;
+      const previousClose = yesterdayData.adjClose || yesterdayData.close;
+      const changePercent =
+        previousClose > 0 ? ((price - previousClose) / previousClose) * 100 : 0;
+
+      const dateOnly = todayData.date.split('T')[0];
+      const timestamp = Math.floor(
+        new Date(dateOnly + 'T16:00:00Z').getTime() / 1000
+      );
+
+      return {
+        price,
+        changePercent,
+        timestamp,
+      };
+    } else if (eodData && eodData.length === 1) {
+      // 오늘 데이터만 있는 경우 (어제 대비 계산 불가)
+      const todayData = eodData[0];
+      const price = todayData.adjClose || todayData.close;
+      const dateOnly = todayData.date.split('T')[0];
+      const timestamp = Math.floor(
+        new Date(dateOnly + 'T16:00:00Z').getTime() / 1000
+      );
+
+      return {
+        price,
+        changePercent: 0,
+        timestamp,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        `Tiingo에서 시장 지수를 가져올 수 없습니다: ${symbol}`,
+        error
+      );
     }
     return null;
   }

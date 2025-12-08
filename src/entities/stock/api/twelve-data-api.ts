@@ -32,7 +32,7 @@ export interface TechnicalIndicators {
 /**
  * Twelve Data API 기본 URL
  */
-const TWELVE_DATA_API_BASE = "https://api.twelvedata.com";
+const TWELVE_DATA_API_BASE = 'https://api.twelvedata.com';
 
 /**
  * Twelve Data API 키를 가져옵니다.
@@ -51,7 +51,7 @@ async function fetchTwelveData<T>(
   const apiKey = getApiKey();
 
   if (!apiKey) {
-    throw new Error("TWELVE_DATA_API_KEY 환경 변수가 설정되지 않았습니다.");
+    throw new Error('TWELVE_DATA_API_KEY 환경 변수가 설정되지 않았습니다.');
   }
 
   const queryParams = new URLSearchParams({
@@ -73,9 +73,9 @@ async function fetchTwelveData<T>(
   const data = await response.json();
 
   // Twelve Data는 에러 시 { status: "error", message: "..." } 형태로 반환
-  if (data.status === "error") {
+  if (data.status === 'error') {
     throw new Error(
-      `Twelve Data API 오류: ${data.message || "알 수 없는 오류"}`
+      `Twelve Data API 오류: ${data.message || '알 수 없는 오류'}`
     );
   }
 
@@ -89,16 +89,16 @@ async function fetchTwelveData<T>(
  */
 export async function getRSI(
   symbol: string,
-  interval: string = "1day"
+  interval: string = '1day'
 ): Promise<number | null> {
   try {
     const data = await fetchTwelveData<{ values: Array<{ rsi: string }> }>(
-      "/rsi",
+      '/rsi',
       {
         symbol: symbol.toUpperCase(),
         interval,
-        time_period: "14",
-        series_type: "close",
+        time_period: '14',
+        series_type: 'close',
       }
     );
 
@@ -109,7 +109,7 @@ export async function getRSI(
 
     return null;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(`RSI를 가져올 수 없습니다: ${symbol}`, error);
     }
     return null;
@@ -123,7 +123,7 @@ export async function getRSI(
  */
 export async function getMACD(
   symbol: string,
-  interval: string = "1day"
+  interval: string = '1day'
 ): Promise<{ value: number; signal: number; histogram: number } | null> {
   try {
     const data = await fetchTwelveData<{
@@ -132,10 +132,10 @@ export async function getMACD(
         macd_signal: string;
         macd_hist: string;
       }>;
-    }>("/macd", {
+    }>('/macd', {
       symbol: symbol.toUpperCase(),
       interval,
-      series_type: "close",
+      series_type: 'close',
     });
 
     if (data.values && data.values.length > 0) {
@@ -150,7 +150,7 @@ export async function getMACD(
 
     return null;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(`MACD를 가져올 수 없습니다: ${symbol}`, error);
     }
     return null;
@@ -164,27 +164,27 @@ export async function getMACD(
  */
 export async function getSMA(
   symbol: string,
-  interval: string = "1day"
+  interval: string = '1day'
 ): Promise<{ sma_20?: number; sma_50?: number; sma_200?: number } | null> {
   try {
     const [sma20, sma50, sma200] = await Promise.all([
-      fetchTwelveData<{ values: Array<{ sma: string }> }>("/sma", {
+      fetchTwelveData<{ values: Array<{ sma: string }> }>('/sma', {
         symbol: symbol.toUpperCase(),
         interval,
-        time_period: "20",
-        series_type: "close",
+        time_period: '20',
+        series_type: 'close',
       }).catch(() => null),
-      fetchTwelveData<{ values: Array<{ sma: string }> }>("/sma", {
+      fetchTwelveData<{ values: Array<{ sma: string }> }>('/sma', {
         symbol: symbol.toUpperCase(),
         interval,
-        time_period: "50",
-        series_type: "close",
+        time_period: '50',
+        series_type: 'close',
       }).catch(() => null),
-      fetchTwelveData<{ values: Array<{ sma: string }> }>("/sma", {
+      fetchTwelveData<{ values: Array<{ sma: string }> }>('/sma', {
         symbol: symbol.toUpperCase(),
         interval,
-        time_period: "200",
-        series_type: "close",
+        time_period: '200',
+        series_type: 'close',
       }).catch(() => null),
     ]);
 
@@ -207,7 +207,7 @@ export async function getSMA(
 
     return Object.keys(result).length > 0 ? result : null;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(`SMA를 가져올 수 없습니다: ${symbol}`, error);
     }
     return null;
@@ -246,7 +246,7 @@ export async function getCurrentPrice(
     const data = await fetchTwelveData<{
       price: string;
       timestamp?: number;
-    }>("/price", {
+    }>('/price', {
       symbol: symbol.toUpperCase(),
     });
 
@@ -262,8 +262,71 @@ export async function getCurrentPrice(
 
     return null;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(`현재가를 가져올 수 없습니다: ${symbol}`, error);
+    }
+    return null;
+  }
+}
+
+/**
+ * 시장 지수를 가져옵니다 (Twelve Data).
+ * @param symbol 지수 심볼 (예: SPY for S&P 500, QQQ for NASDAQ)
+ * @returns 현재가와 타임스탬프, 실패 시 null
+ */
+export async function getMarketIndexFromTwelveData(symbol: string): Promise<{
+  price: number;
+  timestamp: number;
+  changePercent?: number;
+} | null> {
+  try {
+    // Twelve Data의 quote 엔드포인트 사용 (현재가 + 전일 종가)
+    const data = await fetchTwelveData<{
+      close?: string;
+      price?: string; // 일부 응답에 price가 있을 수 있음
+      previous_close?: string;
+      percent_change?: string;
+      timestamp?: number;
+    }>('/quote', {
+      symbol: symbol.toUpperCase(),
+    });
+
+    // close 또는 price 필드 사용
+    const priceStr = data.close || data.price;
+    if (priceStr) {
+      const price = parseFloat(priceStr);
+      if (!isNaN(price)) {
+        const result: {
+          price: number;
+          timestamp: number;
+          changePercent?: number;
+        } = {
+          price,
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+        };
+
+        // percent_change가 있으면 사용, 없으면 previous_close로 계산
+        if (data.percent_change) {
+          result.changePercent = parseFloat(data.percent_change);
+        } else if (data.previous_close) {
+          const previousClose = parseFloat(data.previous_close);
+          if (!isNaN(previousClose) && previousClose > 0) {
+            result.changePercent =
+              ((price - previousClose) / previousClose) * 100;
+          }
+        }
+
+        return result;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        `Twelve Data에서 시장 지수를 가져올 수 없습니다: ${symbol}`,
+        error
+      );
     }
     return null;
   }

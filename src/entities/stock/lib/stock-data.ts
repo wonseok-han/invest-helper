@@ -5,25 +5,23 @@
 import {
   getQuote,
   getStockCandles,
-  getVIX,
   getCompanyProfile,
-} from "../api/finnhub-api";
-import { getEODData, getCurrentPriceFromEOD } from "../api/tiingo-api";
-import { getCurrentPrice } from "../api/twelve-data-api";
+  getMarketIndex,
+} from '../api/finnhub-api';
+import { getEODData, getCurrentPriceFromEOD } from '../api/tiingo-api';
+import { getCurrentPrice } from '../api/twelve-data-api';
 import type {
   StockInfoType,
   MarketConditionType,
   CandleDataType,
-} from "../model/stock.d";
+} from '../model/stock.d';
 
 /**
  * 주식 기본 정보를 가져옵니다.
  * 최신 데이터 우선순위: Twelve Data (실시간) -> Tiingo EOD (최신) -> Finnhub (2일 전, fallback)
  * @param symbol 주식 심볼
  */
-export async function fetchStockInfo(
-  symbol: string
-): Promise<StockInfoType> {
+export async function fetchStockInfo(symbol: string): Promise<StockInfoType> {
   // 회사 프로필은 Finnhub에서만 가져올 수 있으므로 병렬로 가져오기
   const profilePromise = getCompanyProfile(symbol).catch(() => null);
 
@@ -41,7 +39,7 @@ export async function fetchStockInfo(
       priceSources.push({
         price: twelveDataPrice.price,
         timestamp: twelveDataPrice.timestamp,
-        source: "Twelve Data",
+        source: 'Twelve Data',
       });
     }
   } catch {
@@ -55,7 +53,7 @@ export async function fetchStockInfo(
       priceSources.push({
         price: tiingoPrice.price,
         timestamp: tiingoPrice.timestamp,
-        source: "Tiingo (EOD)",
+        source: 'Tiingo (EOD)',
       });
     }
   } catch {
@@ -68,7 +66,7 @@ export async function fetchStockInfo(
     priceSources.push({
       price: quote.c,
       timestamp: quote.t,
-      source: "Finnhub",
+      source: 'Finnhub',
     });
   } catch {
     // Finnhub도 실패하면 에러 처리
@@ -136,11 +134,11 @@ export async function fetchPriceHistory(
     const now = Math.floor(Date.now() / 1000);
     const from = now - days * 24 * 60 * 60;
 
-    const candles = await getStockCandles(symbol, "D", from, now);
+    const candles = await getStockCandles(symbol, 'D', from, now);
 
-    if (candles.s === "ok" && candles.c && candles.c.length > 0) {
+    if (candles.s === 'ok' && candles.c && candles.c.length > 0) {
       // 실제 캔들 데이터로 변환 (시가, 고가, 저가, 종가 모두 포함)
-      const candleData: CandleData[] = candles.c.map((close, index) => ({
+      const candleData: CandleDataType[] = candles.c.map((close, index) => ({
         open: candles.o[index] || close,
         high: candles.h[index] || close,
         low: candles.l[index] || close,
@@ -158,7 +156,7 @@ export async function fetchPriceHistory(
       return {
         candles: candleData,
         lastUpdated: lastTimestamp,
-        dataSource: "Finnhub",
+        dataSource: 'Finnhub',
       };
     }
   } catch {
@@ -167,10 +165,10 @@ export async function fetchPriceHistory(
 
   // 2차 시도: Tiingo EOD 데이터
   try {
-    const endDate = new Date().toISOString().split("T")[0];
+    const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
       .toISOString()
-      .split("T")[0];
+      .split('T')[0];
 
     const eodData = await getEODData(symbol, startDate, endDate);
     console.log(`>> eodData: ${JSON.stringify(eodData)}`);
@@ -186,13 +184,13 @@ export async function fetchPriceHistory(
 
       // 실제 캔들 데이터로 변환
       // Tiingo EOD 데이터의 date는 ISO 8601 형식이므로 날짜 부분만 추출하여 장 마감 시간(16:00 UTC)으로 변환
-      const candleData: CandleData[] = eodData.map((d) => {
+      const candleData: CandleDataType[] = eodData.map((d) => {
         // date 필드에서 날짜 부분만 추출 (YYYY-MM-DD)
         // 실제 데이터: "2025-10-27T00:00:00.000Z" -> "2025-10-27"
-        const dateOnly = d.date.split("T")[0];
+        const dateOnly = d.date.split('T')[0];
         // 장 마감 시간(16:00 UTC)으로 타임스탬프 생성
         const timestamp = dateOnly
-          ? Math.floor(new Date(dateOnly + "T16:00:00Z").getTime() / 1000)
+          ? Math.floor(new Date(dateOnly + 'T16:00:00Z').getTime() / 1000)
           : undefined;
 
         // 조정된 가격(adjusted price) 사용 권장
@@ -209,20 +207,20 @@ export async function fetchPriceHistory(
       });
 
       // 마지막 날짜를 타임스탬프로 변환 (EOD 데이터는 장 마감 후 업데이트)
-      const lastDate = eodData[eodData.length - 1].date.split("T")[0];
+      const lastDate = eodData[eodData.length - 1].date.split('T')[0];
       const lastTimestamp = Math.floor(
-        new Date(lastDate + "T16:00:00Z").getTime() / 1000
+        new Date(lastDate + 'T16:00:00Z').getTime() / 1000
       );
 
       return {
         candles: candleData,
         lastUpdated: lastTimestamp,
-        dataSource: "Tiingo (EOD)",
+        dataSource: 'Tiingo (EOD)',
       };
     }
   } catch {
     // Tiingo도 실패한 경우
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(
         `가격 히스토리를 가져올 수 없습니다: ${symbol}. 모든 데이터 소스 실패.`
       );
@@ -235,63 +233,80 @@ export async function fetchPriceHistory(
 /**
  * 시장 상황을 가져옵니다.
  */
+/**
+ * S&P 500 지수를 가져옵니다 (Finnhub만 사용).
+ * @returns S&P 500 지수 값과 변화율, 실패 시 null
+ */
+async function getSP500(): Promise<{
+  value: number;
+  changePercent: number;
+} | null> {
+  try {
+    const finnhubData = await getMarketIndex('^GSPC');
+    if (finnhubData && finnhubData.pc > 0) {
+      return {
+        value: finnhubData.c,
+        changePercent:
+          ((finnhubData.c - finnhubData.pc) / finnhubData.pc) * 100,
+      };
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Finnhub에서 S&P 500 지수 가져오기 실패:', error);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * NASDAQ 지수를 가져옵니다 (Finnhub만 사용).
+ * @returns NASDAQ 지수 값과 변화율, 실패 시 null
+ */
+async function getNASDAQ(): Promise<{
+  value: number;
+  changePercent: number;
+} | null> {
+  try {
+    const finnhubData = await getMarketIndex('^IXIC');
+    if (finnhubData && finnhubData.pc > 0) {
+      return {
+        value: finnhubData.c,
+        changePercent:
+          ((finnhubData.c - finnhubData.pc) / finnhubData.pc) * 100,
+      };
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Finnhub에서 NASDAQ 지수 가져오기 실패:', error);
+    }
+  }
+
+  return null;
+}
+
 export async function fetchMarketCondition(): Promise<MarketConditionType> {
   try {
-    // VIX 지수 가져오기
-    const vixValue = await getVIX();
+    // 시장 지수 가져오기 (여러 소스에서 시도)
+    const [sp500, nasdaq] = await Promise.all([getSP500(), getNASDAQ()]);
 
-    // VIX 레벨 결정
-    let vixLevel: "low" | "medium" | "high" | "risk";
-    if (vixValue > 25) {
-      vixLevel = "risk";
-    } else if (vixValue > 20) {
-      vixLevel = "high";
-    } else if (vixValue > 15) {
-      vixLevel = "medium";
-    } else {
-      vixLevel = "low";
+    const marketIndices: MarketConditionType['marketIndices'] = {};
+
+    if (sp500) {
+      marketIndices.sp500 = sp500;
     }
 
-    // 무료 플랜에서는 시장 지수 접근이 제한되므로 제거
-    // 유료 플랜을 사용하는 경우 아래 주석을 해제하세요
-    /*
-    const [sp500, nasdaq] = await Promise.all([
-      getMarketIndex("^GSPC").catch(() => null), // S&P 500
-      getMarketIndex("^IXIC").catch(() => null), // NASDAQ
-    ]);
-
-    const marketIndices: MarketCondition["marketIndices"] = {};
-
-    if (sp500 && sp500.pc > 0) {
-      marketIndices.sp500 = {
-        value: sp500.c,
-        changePercent: ((sp500.c - sp500.pc) / sp500.pc) * 100,
-      };
+    if (nasdaq) {
+      marketIndices.nasdaq = nasdaq;
     }
-
-    if (nasdaq && nasdaq.pc > 0) {
-      marketIndices.nasdaq = {
-        value: nasdaq.c,
-        changePercent: ((nasdaq.c - nasdaq.pc) / nasdaq.pc) * 100,
-      };
-    }
-    */
 
     return {
-      vix: {
-        value: Math.round(vixValue * 10) / 10,
-        level: vixLevel,
-      },
-      // marketIndices: Object.keys(marketIndices).length > 0 ? marketIndices : undefined,
+      marketIndices:
+        Object.keys(marketIndices).length > 0 ? marketIndices : undefined,
     };
   } catch (error) {
-    console.error("시장 상황을 가져오는 중 오류 발생", error);
-    // 기본값 반환
-    return {
-      vix: {
-        value: 20,
-        level: "medium",
-      },
-    };
+    console.error('시장 상황을 가져오는 중 오류 발생', error);
+    // 기본값 반환 (빈 객체)
+    return {};
   }
 }

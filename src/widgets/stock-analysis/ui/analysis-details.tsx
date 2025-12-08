@@ -2,7 +2,7 @@
  * 상세 분석 정보 표시 컴포넌트
  */
 
-import type { AIAnalysisType } from "@entities/stock/model/stock.d";
+import type { AIAnalysisType } from '@entities/stock/model/stock.d';
 
 interface AnalysisDetailsProps {
   analysis: AIAnalysisType;
@@ -14,7 +14,7 @@ interface AnalysisDetailsProps {
   };
 }
 
-import { formatTimestamp } from "@shared/lib/format-timestamp";
+import { formatTimestamp } from '@shared/lib/format-timestamp';
 
 /**
  * 상세 분석 정보를 표시하는 컴포넌트
@@ -25,54 +25,54 @@ export default function AnalysisDetails({
 }: AnalysisDetailsProps) {
   const getTrendText = () => {
     const direction =
-      analysis.trend.direction === "uptrend"
-        ? "상승"
-        : analysis.trend.direction === "downtrend"
-        ? "하락"
-        : "횡보";
+      analysis.trend.direction === 'uptrend'
+        ? '상승'
+        : analysis.trend.direction === 'downtrend'
+        ? '하락'
+        : '횡보';
     const strength =
-      analysis.trend.strength === "strong"
-        ? "강함"
-        : analysis.trend.strength === "moderate"
-        ? "보통"
-        : "약함";
+      analysis.trend.strength === 'strong'
+        ? '강함'
+        : analysis.trend.strength === 'moderate'
+        ? '보통'
+        : '약함';
     return `${direction} (${strength})`;
   };
 
   const getEnergyText = () => {
     const pressure =
-      analysis.energy.sellingPressure === "decreased"
-        ? "감소"
-        : analysis.energy.sellingPressure === "increased"
-        ? "증가"
-        : "안정";
+      analysis.energy.sellingPressure === 'decreased'
+        ? '감소'
+        : analysis.energy.sellingPressure === 'increased'
+        ? '증가'
+        : '안정';
     const pattern =
-      analysis.energy.pattern === "golden-cross"
-        ? "Golden Cross"
-        : analysis.energy.pattern === "dead-cross"
-        ? "Dead Cross"
-        : "없음";
+      analysis.energy.pattern === 'golden-cross'
+        ? 'Golden Cross'
+        : analysis.energy.pattern === 'dead-cross'
+        ? 'Dead Cross'
+        : '없음';
     return `매도 압력 ${pressure} (${pattern})`;
   };
 
   const getOBVStrengthText = () => {
-    if (analysis.obvStrength === "strong") {
-      return "강함";
+    if (analysis.obvStrength === 'strong') {
+      return '강함';
     }
-    if (analysis.obvStrength === "moderate") {
-      return "보통";
+    if (analysis.obvStrength === 'moderate') {
+      return '보통';
     }
-    return "약함";
+    return '약함';
   };
 
   const getCandleDirection = () => {
-    if (analysis.candlePattern.direction === "up") {
-      return "▲";
+    if (analysis.candlePattern.direction === 'up') {
+      return '▲';
     }
-    if (analysis.candlePattern.direction === "down") {
-      return "▼";
+    if (analysis.candlePattern.direction === 'down') {
+      return '▼';
     }
-    return "—";
+    return '—';
   };
 
   return (
@@ -111,7 +111,7 @@ export default function AnalysisDetails({
           <div className="flex-1">
             <span className="text-gray-400">패턴 유사도:</span>
             <span className="text-white ml-2">
-              {analysis.patternSimilarity.similarity}% (참조 수익률{" "}
+              {analysis.patternSimilarity.similarity}% (참조 수익률{' '}
               {analysis.patternSimilarity.referenceYield.toFixed(1)}%)
             </span>
           </div>
@@ -154,22 +154,6 @@ export default function AnalysisDetails({
         </p>
       </div>
 
-      {/* 복합 패턴 */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <span className="text-gray-400">복합 패턴:</span>
-            <span className="text-white ml-2">
-              {analysis.complexPattern || "None"}
-            </span>
-          </div>
-        </div>
-        <p className="text-xs text-gray-500 pl-2">
-          여러 기술적 지표를 종합하여 분석한 패턴입니다. 여러 신호가 일치할 때
-          더 신뢰할 수 있습니다.
-        </p>
-      </div>
-
       {/* 신호 */}
       <div className="space-y-1">
         <div className="flex justify-between items-start">
@@ -185,6 +169,80 @@ export default function AnalysisDetails({
           기회, Bearish Divergence는 매도 신호를 의미합니다.
         </p>
       </div>
+
+      {/* LLM 분석 결과 */}
+      {analysis.llmAnalysis && (
+        <div className="pt-4 mt-4 border-t border-gray-700 space-y-4">
+          <h3 className="text-lg font-semibold mb-3 text-blue-400">
+            🤖 AI 인사이트
+          </h3>
+
+          {/* AI 분석 요약 */}
+          {analysis.llmAnalysis.summary && (
+            <div className="mb-4 p-3 bg-gray-800 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">종합 분석</div>
+              <div className="text-white">{analysis.llmAnalysis.summary}</div>
+            </div>
+          )}
+
+          {/* 리스크 요인 */}
+          {analysis.llmAnalysis.riskFactors &&
+            analysis.llmAnalysis.riskFactors.length > 0 && (
+              <div className="mb-4">
+                <div className="text-sm text-gray-400 mb-2">
+                  주요 리스크 요인
+                </div>
+                <ul className="space-y-1">
+                  {analysis.llmAnalysis.riskFactors.map((risk, index) => (
+                    <li
+                      key={index}
+                      className="text-sm text-yellow-400 flex items-start"
+                    >
+                      <span className="mr-2">⚠️</span>
+                      <span>{risk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+          {/* 투자 전략 */}
+          {analysis.llmAnalysis.strategy && (
+            <div className="mb-4 p-3 bg-blue-900/20 rounded-lg border border-blue-700">
+              <div className="text-sm text-gray-400 mb-1">투자 전략 제안</div>
+              <div className="text-white">{analysis.llmAnalysis.strategy}</div>
+            </div>
+          )}
+
+          {/* 시장 감정 및 신뢰도 */}
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">시장 감정:</span>
+              <span
+                className={`font-semibold ${
+                  analysis.llmAnalysis.sentiment === 'bullish'
+                    ? 'text-green-400'
+                    : analysis.llmAnalysis.sentiment === 'bearish'
+                    ? 'text-red-400'
+                    : 'text-gray-400'
+                }`}
+              >
+                {analysis.llmAnalysis.sentiment === 'bullish'
+                  ? '📈 강세'
+                  : analysis.llmAnalysis.sentiment === 'bearish'
+                  ? '📉 약세'
+                  : '➡️ 중립'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">신뢰도:</span>
+              <span className="font-semibold text-blue-400">
+                {analysis.llmAnalysis.confidence}%
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 데이터 소스 정보 */}
       {dataSource?.technicalIndicators && (

@@ -55,7 +55,7 @@ interface FinnhubCompanyProfile {
 /**
  * Finnhub API 기본 URL
  */
-const FINNHUB_API_BASE = "https://finnhub.io/api/v1";
+const FINNHUB_API_BASE = 'https://finnhub.io/api/v1';
 
 /**
  * Finnhub API 키를 가져옵니다.
@@ -63,7 +63,7 @@ const FINNHUB_API_BASE = "https://finnhub.io/api/v1";
 function getApiKey(): string {
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) {
-    throw new Error("FINNHUB_API_KEY 환경 변수가 설정되지 않았습니다.");
+    throw new Error('FINNHUB_API_KEY 환경 변수가 설정되지 않았습니다.');
   }
   return apiKey;
 }
@@ -120,7 +120,7 @@ async function fetchFinnhub<T>(
  * @param symbol 주식 심볼 (예: AAPL, TSLA)
  */
 export async function getQuote(symbol: string): Promise<FinnhubQuote> {
-  return fetchFinnhub<FinnhubQuote>("/quote", {
+  return fetchFinnhub<FinnhubQuote>('/quote', {
     symbol: symbol.toUpperCase(),
   });
 }
@@ -134,7 +134,7 @@ export async function getQuote(symbol: string): Promise<FinnhubQuote> {
  */
 export async function getStockCandles(
   symbol: string,
-  resolution: string = "D",
+  resolution: string = 'D',
   from?: number,
   to?: number
 ): Promise<FinnhubCandle> {
@@ -142,7 +142,7 @@ export async function getStockCandles(
   const now = Math.floor(Date.now() / 1000);
   const defaultFrom = now - 30 * 24 * 60 * 60; // 30일 전
 
-  return fetchFinnhub<FinnhubCandle>("/stock/candle", {
+  return fetchFinnhub<FinnhubCandle>('/stock/candle', {
     symbol: symbol.toUpperCase(),
     resolution,
     from: (from || defaultFrom).toString(),
@@ -158,43 +158,13 @@ export async function getCompanyProfile(
   symbol: string
 ): Promise<FinnhubCompanyProfile | null> {
   try {
-    return await fetchFinnhub<FinnhubCompanyProfile>("/stock/profile2", {
+    return await fetchFinnhub<FinnhubCompanyProfile>('/stock/profile2', {
       symbol: symbol.toUpperCase(),
     });
   } catch (error) {
     // 프로필이 없는 경우 null 반환
     console.warn(`기업 프로필을 가져올 수 없습니다: ${symbol}`, error);
     return null;
-  }
-}
-
-/**
- * VIX 지수를 가져옵니다.
- */
-export async function getVIX(): Promise<number> {
-  try {
-    const quote = await getQuote("VIX");
-    const vixValue = quote.c;
-
-    // VIX 값이 유효한지 확인 (0이거나 음수면 기본값 사용)
-    if (vixValue > 0 && vixValue < 100) {
-      return vixValue;
-    }
-
-    // 유효하지 않은 값이면 기본값 사용
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        `VIX 값이 유효하지 않습니다: ${vixValue}. 기본값(20)을 사용합니다.`
-      );
-    }
-    return 20;
-  } catch {
-    // 개발 환경에서만 에러 로그 출력
-    if (process.env.NODE_ENV === "development") {
-      console.warn("VIX 데이터를 가져올 수 없습니다. 기본값(20)을 사용합니다.");
-    }
-    // 기본값 반환
-    return 20;
   }
 }
 
@@ -210,9 +180,9 @@ export async function getMarketIndex(
   } catch {
     // 무료 플랜에서는 시장 지수 접근이 제한됨
     // 개발 환경에서만 에러 로그 출력
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(
-        `시장 지수를 가져올 수 없습니다: ${symbol} (무료 플랜 제한)`
+        `Finnhub에서 시장 지수를 가져올 수 없습니다: ${symbol} (무료 플랜 제한)`
       );
     }
     return null;

@@ -761,7 +761,6 @@ export function performAIAnalysis(stockData: {
     obvResidualRate: Math.round(obvResidualRate * 100) / 100,
     obvStrength,
     candlePattern,
-    complexPattern: null,
     signal,
     technicalIndicators: stockData.technicalIndicators,
     targetPrice,

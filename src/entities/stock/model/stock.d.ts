@@ -4,11 +4,6 @@
 
 /** 시장 상황 정보 */
 export interface MarketConditionType {
-  /** VIX 지수 */
-  vix: {
-    value: number;
-    level: "low" | "medium" | "high" | "risk";
-  };
   /** 주요 시장 지수 (S&P 500, NASDAQ 등) */
   marketIndices?: {
     sp500?: {
@@ -137,8 +132,6 @@ export interface AIAnalysisType {
   obvStrength: "weak" | "moderate" | "strong";
   /** 캔들 패턴 */
   candlePattern: CandlePatternType;
-  /** 복합 패턴 */
-  complexPattern: string | null;
   /** 신호 */
   signal: SignalInfoType;
   /** 기술적 지표 */
@@ -155,6 +148,19 @@ export interface AIAnalysisType {
   support: number;
   /** 저항선 */
   resistance: number;
+  /** LLM 분석 결과 (선택적) */
+  llmAnalysis?: {
+    /** AI 분석 요약 */
+    summary: string;
+    /** 주요 리스크 요인 */
+    riskFactors: string[];
+    /** 투자 전략 제안 */
+    strategy: string;
+    /** 시장 감정 분석 */
+    sentiment: "bullish" | "bearish" | "neutral";
+    /** 신뢰도 (0-100) */
+    confidence: number;
+  };
 }
 
 /** 전체 주식 분석 결과 */
@@ -179,7 +185,7 @@ export interface StockAnalysisType {
       source: string; // "Finnhub" | "Tiingo (EOD)"
       lastUpdated?: number; // Unix timestamp
     };
-    /** 시장 상황 (VIX 등) */
+    /** 시장 상황 */
     marketCondition?: {
       source: string; // "Finnhub"
       lastUpdated?: number; // Unix timestamp

@@ -1,21 +1,20 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import type { StockAnalysisType } from "@entities/stock/model/stock.d";
-import MarketCondition from "@widgets/stock-analysis/ui/market-condition";
-import AIScore from "@widgets/stock-analysis/ui/ai-score";
-import AnalysisDetails from "@widgets/stock-analysis/ui/analysis-details";
-import TargetStopLoss from "@widgets/stock-analysis/ui/target-stop-loss";
-import VIXWarning from "@widgets/stock-analysis/ui/vix-warning";
-import CandleChart from "@widgets/stock-analysis/ui/candle-chart";
+import { useState } from 'react';
+import type { StockAnalysisType } from '@entities/stock/model/stock.d';
+import MarketCondition from '@widgets/stock-analysis/ui/market-condition';
+import AIScore from '@widgets/stock-analysis/ui/ai-score';
+import AnalysisDetails from '@widgets/stock-analysis/ui/analysis-details';
+import TargetStopLoss from '@widgets/stock-analysis/ui/target-stop-loss';
+import CandleChart from '@widgets/stock-analysis/ui/candle-chart';
 
-import { formatTimestamp } from "@shared/lib/format-timestamp";
+import { formatTimestamp } from '@shared/lib/format-timestamp';
 
 /**
  * 메인 페이지 - AI 기반 주식 분석
  */
 export default function Home() {
-  const [symbol, setSymbol] = useState("BBAI");
+  const [symbol, setSymbol] = useState('BBAI');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<StockAnalysisType | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +24,7 @@ export default function Home() {
    */
   const handleAnalyze = async () => {
     if (!symbol.trim()) {
-      setError("주식 심볼을 입력해주세요.");
+      setError('주식 심볼을 입력해주세요.');
       return;
     }
 
@@ -39,14 +38,14 @@ export default function Home() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "분석 중 오류가 발생했습니다.");
+        throw new Error(data.error || '분석 중 오류가 발생했습니다.');
       }
 
       const data: StockAnalysisType = await response.json();
       setAnalysis(data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
       );
       setAnalysis(null);
     } finally {
@@ -58,7 +57,7 @@ export default function Home() {
    * Enter 키를 눌렀을 때 분석을 수행합니다.
    */
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       handleAnalyze();
     }
   };
@@ -87,7 +86,7 @@ export default function Home() {
             disabled={loading}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
           >
-            {loading ? "분석 중..." : "분석"}
+            {loading ? '분석 중...' : '분석'}
           </button>
         </div>
 
@@ -102,12 +101,14 @@ export default function Home() {
         {analysis && (
           <div className="space-y-6">
             {/* 시장 상황 */}
-            <div className="p-4 bg-gray-900 rounded-lg">
-              <MarketCondition
-                market={analysis.market}
-                dataSource={analysis.dataSource?.marketCondition}
-              />
-            </div>
+            {analysis.market.marketIndices && (
+              <div className="p-4 bg-gray-900 rounded-lg">
+                <MarketCondition
+                  market={analysis.market}
+                  dataSource={analysis.dataSource?.marketCondition}
+                />
+              </div>
+            )}
 
             {/* 주식 정보 및 AI Score */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -132,11 +133,11 @@ export default function Home() {
                 <div
                   className={`text-sm ${
                     analysis.stock.changePercent >= 0
-                      ? "text-green-400"
-                      : "text-red-400"
+                      ? 'text-green-400'
+                      : 'text-red-400'
                   }`}
                 >
-                  {analysis.stock.changePercent >= 0 ? "+" : ""}
+                  {analysis.stock.changePercent >= 0 ? '+' : ''}
                   {analysis.stock.changePercent.toFixed(2)}%
                 </div>
                 {/* 데이터 기준 시간 및 소스 표시 */}
@@ -144,7 +145,7 @@ export default function Home() {
                   <div className="text-xs text-gray-500 pt-1 space-y-1">
                     {analysis.dataSource.stockInfo.lastUpdated && (
                       <div>
-                        기준 시간:{" "}
+                        기준 시간:{' '}
                         {formatTimestamp(
                           analysis.dataSource.stockInfo.lastUpdated
                         )}
@@ -203,17 +204,6 @@ export default function Home() {
                 }
               />
             </div>
-
-            {/* VIX 경고 */}
-            {analysis.market.vix.level === "risk" ||
-            analysis.market.vix.level === "high" ? (
-              <div className="p-4 bg-yellow-900/20 border border-yellow-500 rounded-lg">
-                <VIXWarning
-                  vixValue={analysis.market.vix.value}
-                  vixLevel={analysis.market.vix.level}
-                />
-              </div>
-            ) : null}
           </div>
         )}
 

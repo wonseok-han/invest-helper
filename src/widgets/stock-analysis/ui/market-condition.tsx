@@ -21,29 +21,6 @@ export default function MarketCondition({
   market,
   dataSource,
 }: MarketConditionProps) {
-  const getVIXColor = () => {
-    if (market.vix.level === "risk") {
-      return "text-red-400";
-    }
-    if (market.vix.level === "high") {
-      return "text-yellow-400";
-    }
-    return "text-green-400";
-  };
-
-  const getVIXLabel = () => {
-    if (market.vix.level === "risk") {
-      return "위험";
-    }
-    if (market.vix.level === "high") {
-      return "높음";
-    }
-    if (market.vix.level === "medium") {
-      return "보통";
-    }
-    return "낮음";
-  };
-
   const getChangeColor = (change: number) => {
     if (change > 0) {
       return "text-green-400";
@@ -56,15 +33,6 @@ export default function MarketCondition({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400">VIX:</span>
-          <span className={getVIXColor()}>
-            {getVIXLabel()} ({market.vix.value})
-          </span>
-        </div>
-      </div>
-
       {/* 주요 시장 지수 */}
       {market.marketIndices && (
         <div className="pt-2 border-t border-gray-700">

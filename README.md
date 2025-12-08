@@ -52,9 +52,36 @@ TIINGO_API_KEY=your_tiingo_api_key_here
 
 # 선택적 (기술적 지표 강화)
 TWELVE_DATA_API_KEY=your_twelve_data_api_key_here
+
+# LLM 분석 (비용 최소화를 위해 Hugging Face 추천)
+# Hugging Face (추천) - 무료 티어: 시간당 1,000회, Pro: $9/월 무제한
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+HF_MODEL=meta-llama/Llama-3.2-1B-Instruct  # 선택사항 (기본값)
+# 다른 추천 모델:
+# - meta-llama/Llama-3.1-8B-Instruct (더 좋은 성능)
+# - Qwen/Qwen2.5-0.5B-Instruct (초경량)
+# - mistralai/Mistral-7B-Instruct-v0.2 (좋은 성능)
+
+# Google Gemini (대안) - 무료 티어: 월 1,500회
+# GEMINI_API_KEY=your_gemini_api_key_here
+
+# OpenAI (유료) - $0.15/1M 토큰
+# OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 **주의**: `.env.local` 파일은 Git에 커밋하지 마세요. 이미 `.gitignore`에 포함되어 있습니다.
+
+### 3. LLM API 키 발급 (AI 분석 기능)
+
+#### Hugging Face (추천) ⭐
+1. [Hugging Face](https://huggingface.co/)에 회원가입
+2. [Settings > Access Tokens](https://huggingface.co/settings/tokens)에서 토큰 생성
+3. "Read" 권한으로 생성
+4. (선택) [Pro Plan](https://huggingface.co/pricing) 업그레이드 ($9/월 무제한)
+
+#### Google Gemini (대안)
+1. [Google AI Studio](https://aistudio.google.com/)에서 API 키 발급
+2. 무료 티어: 월 1,500회
 
 ### 3. 데이터 소스 우선순위
 
