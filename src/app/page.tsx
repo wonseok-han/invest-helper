@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import type { StockAnalysisType } from '@entities/stock/model/stock.d';
 import MarketCondition from '@widgets/stock-analysis/ui/market-condition';
 import AIScore from '@widgets/stock-analysis/ui/ai-score';
@@ -11,52 +13,82 @@ import CandleChart from '@widgets/stock-analysis/ui/candle-chart';
 import { formatTimestamp } from '@shared/lib/format-timestamp';
 
 /**
+ * 주식 분석 데이터를 가져옵니다.
+ */
+async function fetchStockAnalysis(symbol: string): Promise<StockAnalysisType> {
+  const response = await fetch(
+    `/api/analyze-stock?symbol=${encodeURIComponent(symbol)}`
+  );
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || '분석 중 오류가 발생했습니다.');
+  }
+
+  return response.json();
+}
+
+/**
  * 메인 페이지 - AI 기반 주식 분석
  */
 export default function Home() {
-  const [symbol, setSymbol] = useState('BBAI');
-  const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<StockAnalysisType | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlSymbol = searchParams.get('symbol')?.toUpperCase() || '';
+  const [inputSymbol, setInputSymbol] = useState(() => urlSymbol || '');
+
+  // 쿼리에 사용할 심볼 (URL에 있는 경우만)
+  const querySymbol = urlSymbol;
 
   /**
-   * 주식 분석을 수행합니다.
+   * URL searchParams 업데이트
    */
-  const handleAnalyze = async () => {
-    if (!symbol.trim()) {
-      setError('주식 심볼을 입력해주세요.');
+  const updateSearchParams = (newSymbol: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newSymbol.trim()) {
+      params.set('symbol', newSymbol.trim().toUpperCase());
+    } else {
+      params.delete('symbol');
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  // TanStack Query로 데이터 페칭
+  const {
+    data: analysis,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['stock-analysis', querySymbol],
+    queryFn: () => fetchStockAnalysis(querySymbol),
+    enabled: !!querySymbol.trim(), // 심볼이 있을 때만 실행
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지 (이 시간 내에는 재조회 안 함)
+    gcTime: 10 * 60 * 1000, // 10분간 메모리 유지
+  });
+
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : '알 수 없는 오류가 발생했습니다.'
+    : null;
+
+  /**
+   * 분석 버튼 클릭 핸들러
+   */
+  const handleAnalyze = () => {
+    const trimmedSymbol = inputSymbol.trim().toUpperCase();
+    if (!trimmedSymbol) {
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/analyze-stock?symbol=${encodeURIComponent(symbol.trim())}`
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || '분석 중 오류가 발생했습니다.');
-      }
-
-      const data: StockAnalysisType = await response.json();
-      setAnalysis(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
-      );
-      setAnalysis(null);
-    } finally {
-      setLoading(false);
-    }
+    // URL 업데이트 (쿼리가 자동으로 실행됨 - queryKey가 변경되면 자동 리페치)
+    updateSearchParams(trimmedSymbol);
   };
 
   /**
    * Enter 키를 눌렀을 때 분석을 수행합니다.
    */
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleAnalyze();
     }
@@ -75,9 +107,11 @@ export default function Home() {
         <div className="flex gap-2">
           <input
             type="text"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            onKeyPress={handleKeyPress}
+            value={inputSymbol}
+            onChange={(e) => {
+              setInputSymbol(e.target.value.toUpperCase());
+            }}
+            onKeyDown={handleKeyDown}
             placeholder="주식 심볼 입력 (예: BBAI, AAPL)"
             className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />

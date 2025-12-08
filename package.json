@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.4",
+    "@tanstack/query-persist-client-core": "^5.91.11",
+    "@tanstack/react-query": "^5.90.12",
     "next": "16.0.7",
     "react": "19.2.1",
     "react-dom": "19.2.1",
