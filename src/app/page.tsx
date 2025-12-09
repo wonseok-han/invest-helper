@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import type { StockAnalysisType } from '@entities/stock/model/stock.d';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import MarketCondition from '@widgets/stock-analysis/ui/market-condition';
 import AIScore from '@widgets/stock-analysis/ui/ai-score';
 import AnalysisDetails from '@widgets/stock-analysis/ui/analysis-details';
@@ -11,22 +11,7 @@ import TargetStopLoss from '@widgets/stock-analysis/ui/target-stop-loss';
 import CandleChart from '@widgets/stock-analysis/ui/candle-chart';
 
 import { formatTimestamp } from '@shared/lib/format-timestamp';
-
-/**
- * 주식 분석 데이터를 가져옵니다.
- */
-async function fetchStockAnalysis(symbol: string): Promise<StockAnalysisType> {
-  const response = await fetch(
-    `/api/analyze-stock?symbol=${encodeURIComponent(symbol)}`
-  );
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || '분석 중 오류가 발생했습니다.');
-  }
-
-  return response.json();
-}
+import { getStockAnalysis } from '@/entities/analysis/api/analysis-api';
 
 /**
  * 메인 페이지 - AI 기반 주식 분석
@@ -34,6 +19,7 @@ async function fetchStockAnalysis(symbol: string): Promise<StockAnalysisType> {
 export default function Home() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const urlSymbol = searchParams.get('symbol')?.toUpperCase() || '';
   const [inputSymbol, setInputSymbol] = useState(() => urlSymbol || '');
 
@@ -57,10 +43,12 @@ export default function Home() {
   const {
     data: analysis,
     isLoading: loading,
+    isFetching,
     error: queryError,
+    refetch,
   } = useQuery({
     queryKey: ['stock-analysis', querySymbol],
-    queryFn: () => fetchStockAnalysis(querySymbol),
+    queryFn: () => getStockAnalysis(querySymbol),
     enabled: !!querySymbol.trim(), // 심볼이 있을 때만 실행
     staleTime: 5 * 60 * 1000, // 5분간 캐시 유지 (이 시간 내에는 재조회 안 함)
     gcTime: 10 * 60 * 1000, // 10분간 메모리 유지
@@ -92,6 +80,15 @@ export default function Home() {
     if (e.key === 'Enter') {
       handleAnalyze();
     }
+  };
+
+  /**
+   * 강제로 새로운 데이터를 가져옵니다 (캐시 무시)
+   */
+  const handleRefresh = async () => {
+    if (!querySymbol.trim()) return;
+
+    await refetch();
   };
 
   return (
@@ -134,6 +131,36 @@ export default function Home() {
         {/* 분석 결과 */}
         {analysis && (
           <div className="space-y-6">
+            {/* 새로고침 버튼 */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-400">
+                {isFetching
+                  ? '데이터를 가져오는 중...'
+                  : '최신 데이터로 업데이트'}
+              </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isFetching || loading}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50 border border-gray-700 rounded-lg text-sm font-medium transition-colors"
+                title="새로운 데이터 가져오기"
+              >
+                <svg
+                  className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {isFetching ? '새로고침 중...' : '새로고침'}
+              </button>
+            </div>
+
             {/* 시장 상황 */}
             {analysis.market.marketIndices && (
               <div className="p-4 bg-gray-900 rounded-lg">
