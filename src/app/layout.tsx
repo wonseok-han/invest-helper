@@ -1,21 +1,21 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
+import { QueryProviders } from '@/widgets/layout/ui/query-providers';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "AI 기반 주식 분석 - Invest Helper",
-  description: "AI로 실시간 주식 현황을 분석하고 투자 인사이트를 제공합니다",
+  title: 'AI 기반 주식 분석 - Invest Helper',
+  description: 'AI로 실시간 주식 현황을 분석하고 투자 인사이트를 제공합니다',
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <QueryProviders>{children}</QueryProviders>
       </body>
     </html>
   );

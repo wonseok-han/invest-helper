@@ -27,7 +27,7 @@ const localStorageAdapter = {
 /**
  * React Query Provider
  */
-export function Providers({ children }: { children: React.ReactNode }) {
+export function QueryProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => {
     // Persister 생성 (클라이언트에서만)
     const persister =

@@ -57,17 +57,17 @@ export interface StockInfoType {
 /** 트렌드 정보 */
 export interface TrendInfoType {
   /** 트렌드 방향 */
-  direction: "uptrend" | "downtrend" | "sideways";
+  direction: 'uptrend' | 'downtrend' | 'sideways';
   /** 트렌드 강도 */
-  strength: "weak" | "moderate" | "strong";
+  strength: 'weak' | 'moderate' | 'strong';
 }
 
 /** 에너지 정보 */
 export interface EnergyInfoType {
   /** 매도 압력 상태 */
-  sellingPressure: "increased" | "decreased" | "stable";
+  sellingPressure: 'increased' | 'decreased' | 'stable';
   /** 패턴 유형 */
-  pattern: "golden-cross" | "dead-cross" | "none";
+  pattern: 'golden-cross' | 'dead-cross' | 'none';
 }
 
 /** 패턴 유사도 정보 */
@@ -81,7 +81,7 @@ export interface PatternSimilarityType {
 /** 캔들 패턴 정보 */
 export interface CandlePatternType {
   /** 방향 */
-  direction: "up" | "down" | "neutral";
+  direction: 'up' | 'down' | 'neutral';
   /** 패턴 이름 */
   pattern: string;
 }
@@ -89,9 +89,9 @@ export interface CandlePatternType {
 /** 신호 정보 */
 export interface SignalInfoType {
   /** 신호 유형 */
-  type: "bullish-divergence" | "bearish-divergence" | "none";
+  type: 'bullish-divergence' | 'bearish-divergence' | 'none';
   /** 액션 */
-  action: "buy" | "sell" | "hold";
+  action: 'buy' | 'sell' | 'hold';
   /** 설명 */
   description: string;
 }
@@ -129,7 +129,7 @@ export interface AIAnalysisType {
   /** OBV 잔여율 */
   obvResidualRate: number;
   /** OBV 강도 */
-  obvStrength: "weak" | "moderate" | "strong";
+  obvStrength: 'weak' | 'moderate' | 'strong';
   /** 캔들 패턴 */
   candlePattern: CandlePatternType;
   /** 신호 */
@@ -157,49 +157,8 @@ export interface AIAnalysisType {
     /** 투자 전략 제안 */
     strategy: string;
     /** 시장 감정 분석 */
-    sentiment: "bullish" | "bearish" | "neutral";
+    sentiment: 'bullish' | 'bearish' | 'neutral';
     /** 신뢰도 (0-100) */
     confidence: number;
   };
 }
-
-/** 전체 주식 분석 결과 */
-export interface StockAnalysisType {
-  /** 주식 기본 정보 */
-  stock: StockInfoType;
-  /** 시장 상황 */
-  market: MarketConditionType;
-  /** AI 분석 결과 */
-  analysis: AIAnalysisType;
-  /** 캔들 데이터 (가격 히스토리) */
-  candles?: CandleDataType[];
-  /** 데이터 소스 정보 */
-  dataSource?: {
-    /** 주식 기본 정보 (현재가, 변화율 등) */
-    stockInfo?: {
-      source: string; // "Finnhub"
-      lastUpdated?: number; // Unix timestamp
-    };
-    /** 가격 히스토리 (캔들 데이터) */
-    priceHistory?: {
-      source: string; // "Finnhub" | "Tiingo (EOD)"
-      lastUpdated?: number; // Unix timestamp
-    };
-    /** 시장 상황 */
-    marketCondition?: {
-      source: string; // "Finnhub"
-      lastUpdated?: number; // Unix timestamp
-    };
-    /** 기술적 지표 (RSI, MACD, SMA) */
-    technicalIndicators?: {
-      source: string; // "Twelve Data"
-      lastUpdated?: number; // Unix timestamp
-    };
-    /** 목표가/손절가 계산에 사용된 데이터 소스 (가장 많이 사용된 소스) */
-    targetStopLoss?: {
-      source: string;
-      lastUpdated?: number; // Unix timestamp
-    };
-  };
-}
-
