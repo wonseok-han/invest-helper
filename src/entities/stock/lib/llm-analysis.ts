@@ -484,7 +484,7 @@ function buildAnalysisPrompt(data: {
 
   // 시스템 프롬프트 (Chat 모델용)
   const systemPrompt =
-    'You are a professional stock analyst. Analyze the provided stock data and respond in Korean language. Use simple and easy-to-understand Korean words. Avoid mixing other languages, technical jargon, or English words. Write naturally as if explaining to an informed investor. Respond ONLY with valid JSON, no markdown, no explanations.';
+    'You are a professional stock analyst. Analyze the provided stock data and respond EXCLUSIVELY in Korean language. CRITICAL: You MUST write ONLY in Korean. Do NOT use Chinese (中文, 的, 是, etc.), Japanese (日本語, です, ます, etc.), English words, or any other languages. Use simple and easy-to-understand Korean words only. Write naturally as if explaining to an informed investor. Respond ONLY with valid JSON, no markdown, no explanations.';
 
   // 주식 데이터 부분
   const stockDataSection = `**Stock Information:**
@@ -610,17 +610,16 @@ Current RSI Status: ${rsiStatus}
 **Response Format:**
 Respond in the following JSON format:
 {
-  "score": <A number between 0-100, your calculated score based on all factors>,
-  "grade": "<One of: SSS, SS, S, A, B, C, D, F>",
+  "score": <A number between 0-100, your calculated score based on all factors. Be CONSERVATIVE - only give high scores (80+) when indicators are strongly positive. Most stocks should score 40-70. Only exceptional stocks with multiple strong positive signals should score above 80.>,
+  "grade": "<One of: SSS, SS, S, A, B, C, D, F>. Be VERY CONSERVATIVE with grades: SSS (98+), SS (90+), S (85+), A (75+), B (65+), C (55+), D (45+), F (<45). Most stocks should be B, C, or D grade. Only give SSS or SS to truly exceptional stocks with overwhelmingly positive indicators across all metrics.>",
   "summary": "<Comprehensive analysis summary in Korean, 200-300 characters. Provide nuanced insights that consider both opportunities and risks. Write naturally as if explaining to an informed investor.>",
   "riskFactors": ["<Actual risk factor 1 in Korean - be specific, not generic>", "<Actual risk factor 2 in Korean - be specific, not generic>"],
-  "strategy": "<Investment strategy suggestion in Korean, 200-300 characters. Be specific to this stock's situation. Consider entry timing, position sizing, and exit strategy.>",
+  "strategy": "<Investment strategy suggestion in Korean, 200-300 characters. Be specific to this stock's situation. Consider entry timing, position sizing, and exit strategy. IMPORTANT: When mentioning price levels, use prices that are DIFFERENT from the current price. Use meaningful price levels like support/resistance levels, not the exact current price.>",
   "sentiment": "<One of: bullish, bearish, neutral>",
   "confidence": <A number between 0-100, your confidence level in this analysis>
 }
 
-**Important Requirements:**
-- All text fields (summary, riskFactors, strategy) must be in Korean ONLY
+**CONTENT REQUIREMENTS:**
 - "summary" should be comprehensive and nuanced, not just listing facts
 - "riskFactors" should be actual risks specific to this stock's current situation. Think about:
   * What could go wrong with this investment?
@@ -629,12 +628,36 @@ Respond in the following JSON format:
   * What fundamental factors pose risks?
   - DO NOT use generic phrases or copy example text
   - Each risk factor should be unique and specific to this stock's analysis
+  - Use correct financial terminology:
+    * "반등" (rebound) = 하락 후 상승 (price rises after falling) - this is POSITIVE, not a risk
+    * "조정" (correction) = 상승 후 하락 (price falls after rising) - this is a risk when price is high
+    * "하락" (decline/fall) = 가격이 떨어짐 - this is a risk
+    * DO NOT say "상승한 후 반등" - this is contradictory. Use "상승한 후 조정" or "하락 후 반등" instead
+    * DO NOT say "반등의 위험" - this is contradictory. "반등" is positive. Use "조정의 위험" or "하락의 위험" instead
+    * When price is high and may fall, say "조정의 위험" or "하락의 위험", NOT "반등의 위험"
+    * When price is low and may rise, say "반등 가능성" or "상승 가능성", NOT "반등의 위험"
 - "strategy" should be specific and actionable, considering the stock's unique situation
+- When mentioning price levels in strategy:
+  * DO NOT use the exact current price as a threshold
+  * Use meaningful price levels that are DIFFERENT from current price
+  * Consider support/resistance levels, target prices, or stop-loss levels
+  * Make sure the price levels make logical sense
+- Use logical and consistent language - avoid contradictory statements
 - Create unique, thoughtful analysis for each stock
+
+**RESPONSE FORMAT:**
 - Respond with JSON object only, no markdown or code blocks, pure JSON only`;
 
   // 사용자 프롬프트 (Chat 모델용)
-  const userPrompt = `Analyze the following stock data as a professional analyst. Provide comprehensive, nuanced insights in Korean.
+  const userPrompt = `Analyze the following stock data as a professional analyst. Provide comprehensive, nuanced insights EXCLUSIVELY in Korean language.
+
+CRITICAL LANGUAGE REQUIREMENT:
+- You MUST write ONLY in Korean (한국어)
+- Do NOT use Chinese characters (中文, 的, 是, 可以, etc.)
+- Do NOT use Japanese characters (日本語, です, ます, が, etc.)
+- Do NOT use English words except for technical terms that have no Korean equivalent
+- All text fields (summary, riskFactors, strategy) must be 100% Korean
+- If you use any non-Korean characters, the response will be rejected
 
 Stock Data:
 ${stockDataSection}
@@ -664,30 +687,32 @@ export function combineAnalysis(
     return technicalAnalysis;
   }
 
-  // 기술적 분석 점수와 LLM 점수를 가중 평균
-  // 기술적 분석 50% + LLM 분석 50%
+  // 기술적 분석 점수와 LLM 점수를 가중 평균 (보수적 접근)
+  // 기술적 분석 70% + LLM 분석 30% (기술적 분석에 더 높은 가중치)
+  // LLM 점수에 보수적 조정 적용 (10점 감점)
+  const adjustedLLMScore = Math.max(0, llmAnalysis.score - 10);
   const combinedScore = Math.round(
-    technicalAnalysis.score * 0.5 + llmAnalysis.score * 0.5
+    technicalAnalysis.score * 0.7 + adjustedLLMScore * 0.3
   );
 
-  // 등급 재계산
+  // 등급 재계산 (매우 엄격한 보수적 기준)
   let grade: string;
-  if (combinedScore >= 90) {
-    grade = 'SSS';
-  } else if (combinedScore >= 80) {
-    grade = 'SS';
-  } else if (combinedScore >= 70) {
-    grade = 'S';
-  } else if (combinedScore >= 60) {
-    grade = 'A';
-  } else if (combinedScore >= 50) {
-    grade = 'B';
-  } else if (combinedScore >= 40) {
-    grade = 'C';
-  } else if (combinedScore >= 30) {
-    grade = 'D';
+  if (combinedScore >= 98) {
+    grade = 'SSS'; // 거의 불가능한 수준 - 모든 지표가 압도적으로 긍정적
+  } else if (combinedScore >= 90) {
+    grade = 'SS'; // 매우 우수 - 대부분의 지표가 강하게 긍정적
+  } else if (combinedScore >= 85) {
+    grade = 'S'; // 우수 - 여러 지표가 긍정적
+  } else if (combinedScore >= 75) {
+    grade = 'A'; // 양호 - 전반적으로 긍정적
+  } else if (combinedScore >= 65) {
+    grade = 'B'; // 보통 - 중립적이거나 약간 긍정적
+  } else if (combinedScore >= 55) {
+    grade = 'C'; // 보통 이하 - 약간 부정적
+  } else if (combinedScore >= 45) {
+    grade = 'D'; // 부정적 - 여러 지표가 부정적
   } else {
-    grade = 'F';
+    grade = 'F'; // 매우 부정적
   }
 
   return {
