@@ -49,12 +49,12 @@ export async function analyzeWithLLM(data: {
   technicalIndicators?: TechnicalIndicatorsType;
   technicalAnalysis: AIAnalysisType;
 }): Promise<LLMAnalysisResultType | null> {
-  // 프롬프트 구성
-  const prompt = buildAnalysisPrompt(data);
+  // 프롬프트 구성 (통일된 프롬프트)
+  const prompts = buildAnalysisPrompt(data);
 
   // 1순위: Hugging Face (무료 티어: 시간당 1,000회, Pro: $9/월 무제한)
   try {
-    const hfResult = await analyzeWithHuggingFace(prompt);
+    const hfResult = await analyzeWithHuggingFace(prompts);
     console.log(`>> hfResult: ${JSON.stringify(hfResult)}`);
     if (hfResult) return hfResult;
   } catch (error) {
@@ -63,7 +63,7 @@ export async function analyzeWithLLM(data: {
 
   // 2순위: Google Gemini (무료 티어: 월 1,500회)
   try {
-    const geminiResult = await analyzeWithGemini(prompt);
+    const geminiResult = await analyzeWithGemini(prompts);
     if (geminiResult) return geminiResult;
   } catch (error) {
     console.warn('Gemini 분석 실패:', error);
@@ -71,7 +71,7 @@ export async function analyzeWithLLM(data: {
 
   // 3순위: Ollama (로컬, 개발 환경용)
   try {
-    const ollamaResult = await analyzeWithOllama(prompt);
+    const ollamaResult = await analyzeWithOllama(prompts);
     if (ollamaResult) return ollamaResult;
   } catch (error) {
     console.warn('Ollama 분석 실패:', error);
@@ -79,7 +79,7 @@ export async function analyzeWithLLM(data: {
 
   // 4순위: OpenAI (유료, 가장 안정적)
   try {
-    const openaiResult = await analyzeWithOpenAI(prompt);
+    const openaiResult = await analyzeWithOpenAI(prompts);
     if (openaiResult) return openaiResult;
   } catch (error) {
     console.warn('OpenAI 분석 실패:', error);
@@ -97,7 +97,7 @@ export async function analyzeWithLLM(data: {
  * 참고: https://huggingface.co/docs/huggingface.js/index
  */
 async function analyzeWithHuggingFace(
-  prompt: string
+  prompts: LLMPromptType
 ): Promise<LLMAnalysisResultType | null> {
   try {
     const apiKey = process.env.HUGGINGFACE_API_KEY;
@@ -124,35 +124,9 @@ async function analyzeWithHuggingFace(
       model.includes('Mistral') ||
       model.includes('Phi');
 
-    const systemPrompt =
-      'You are a professional stock analyst. Analyze the provided stock data and respond in Korean language. Use simple and easy-to-understand Korean words. Avoid mixing other languages, technical jargon, or English words. Write naturally as if explaining to a non-expert. Respond ONLY with valid JSON, no markdown, no explanations.';
-
-    const userPrompt = `Analyze the following stock data and provide your analysis in Korean language. Use simple and clear Korean words that are easy to understand.
-
-Stock Data:
-${prompt}
-
-Respond in the following JSON format with actual analysis results (do not copy example text, write real analysis):
-{
-  "score": <A number between 0-100, your calculated score>,
-  "grade": "<One of: SSS, SS, S, A, B, C, D, F>",
-  "summary": "<Comprehensive analysis summary in Korean, max 200 characters. Use simple and clear Korean words. Explain the analysis in an easy-to-understand way.>",
-  "riskFactors": ["<Risk factor 1 in Korean, use simple words>", "<Risk factor 2 in Korean, use simple words>"],
-  "strategy": "<Investment strategy suggestion in Korean, max 150 characters. Use simple and clear Korean words.>",
-  "sentiment": "<One of: bullish, bearish, neutral>",
-  "confidence": <A number between 0-100, your confidence level>
-}
-
-IMPORTANT REQUIREMENTS:
-- All text fields (summary, riskFactors, strategy) must be in Korean ONLY
-- Use everyday Korean words that are easy to understand
-- Avoid mixing English, Vietnamese, or any other languages
-- Write naturally and clearly as if explaining to someone who is not a financial expert
-- Do not use technical jargon or complex financial terms
-- Example: Instead of "RSI의 지속적인 상승을 통해 강한 uptrend 트렌드를 xác지합니다", write "RSI가 계속 올라가고 있어서 주가가 오를 가능성이 높습니다"
-- Write actual investment strategy in Korean (e.g., "단기 매수 후 목표가 도달 시 매도")
-- Write ONLY in Korean, not in Japanese or English
-- Respond with JSON object only, no markdown or code blocks, pure JSON only`;
+    // 통일된 프롬프트 사용
+    const systemPrompt = prompts.systemPrompt;
+    const userPrompt = prompts.userPrompt;
 
     let generatedText: string;
 
@@ -166,7 +140,7 @@ IMPORTANT REQUIREMENTS:
             { role: 'user', content: userPrompt },
           ],
           max_tokens: 500,
-          temperature: 0.3,
+          temperature: 0.5, // 다양성 증가 (0.3 -> 0.5)
           // JSON 형식 강제 (지원되는 모델만)
           // response_format: { type: 'json_object' }, // 일부 모델만 지원
         });
@@ -181,9 +155,9 @@ IMPORTANT REQUIREMENTS:
         try {
           const response = await client.textGeneration({
             model,
-            inputs: `${systemPrompt}\n\n${userPrompt}`,
+            inputs: prompts.fullPrompt,
             parameters: {
-              temperature: 0.3,
+              temperature: 0.5, // 다양성 증가 (0.3 -> 0.5)
               max_new_tokens: 500,
               return_full_text: false,
             },
@@ -203,9 +177,9 @@ IMPORTANT REQUIREMENTS:
       try {
         const response = await client.textGeneration({
           model,
-          inputs: `${systemPrompt}\n\n${userPrompt}`,
+          inputs: prompts.fullPrompt,
           parameters: {
-            temperature: 0.3,
+            temperature: 0.5, // 다양성 증가 (0.3 -> 0.5)
             max_new_tokens: 500,
             return_full_text: false,
           },
@@ -321,7 +295,7 @@ IMPORTANT REQUIREMENTS:
  * Ollama (로컬 LLM)로 분석 - 개발 환경용
  */
 async function analyzeWithOllama(
-  prompt: string
+  prompts: LLMPromptType
 ): Promise<LLMAnalysisResultType | null> {
   try {
     const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
@@ -334,10 +308,10 @@ async function analyzeWithOllama(
       },
       body: JSON.stringify({
         model,
-        prompt: `당신은 전문 주식 분석가입니다. 다음 데이터를 분석하고 JSON 형식으로 응답하세요.\n\n${prompt}\n\n반드시 다음 JSON 형식으로만 응답하세요:\n{"score": 0-100, "grade": "SSS|SS|S|A|B|C|D|F", "summary": "요약", "riskFactors": ["리스크1", "리스크2"], "strategy": "전략", "sentiment": "bullish|bearish|neutral", "confidence": 0-100}`,
+        prompt: prompts.fullPrompt,
         stream: false,
         options: {
-          temperature: 0.3,
+          temperature: 0.5, // 다양성 증가
         },
       }),
     });
@@ -367,7 +341,7 @@ async function analyzeWithOllama(
  * Google Gemini API로 분석 - 무료 티어 있음
  */
 async function analyzeWithGemini(
-  prompt: string
+  prompts: LLMPromptType
 ): Promise<LLMAnalysisResultType | null> {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -387,13 +361,13 @@ async function analyzeWithGemini(
             {
               parts: [
                 {
-                  text: `당신은 전문 주식 분석가입니다. 다음 데이터를 분석하고 JSON 형식으로 응답하세요.\n\n${prompt}\n\n반드시 다음 JSON 형식으로만 응답하세요:\n{"score": 0-100, "grade": "SSS|SS|S|A|B|C|D|F", "summary": "요약", "riskFactors": ["리스크1", "리스크2"], "strategy": "전략", "sentiment": "bullish|bearish|neutral", "confidence": 0-100}`,
+                  text: prompts.fullPrompt,
                 },
               ],
             },
           ],
           generationConfig: {
-            temperature: 0.3,
+            temperature: 0.5, // 다양성 증가
             responseMimeType: 'application/json',
           },
         }),
@@ -425,7 +399,7 @@ async function analyzeWithGemini(
  * OpenAI API로 분석 - 유료
  */
 async function analyzeWithOpenAI(
-  prompt: string
+  prompts: LLMPromptType
 ): Promise<LLMAnalysisResultType | null> {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -444,16 +418,15 @@ async function analyzeWithOpenAI(
         messages: [
           {
             role: 'system',
-            content:
-              '당신은 전문 주식 분석가입니다. 주어진 기술적 지표와 시장 데이터를 기반으로 주식에 대한 종합적인 분석을 제공하세요. JSON 형식으로 응답하세요.',
+            content: prompts.systemPrompt,
           },
           {
             role: 'user',
-            content: prompt,
+            content: prompts.userPrompt,
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.3,
+        temperature: 0.5, // 다양성 증가
       }),
     });
 
@@ -479,7 +452,20 @@ async function analyzeWithOpenAI(
 }
 
 /**
+ * LLM 프롬프트 구성 결과 타입
+ */
+interface LLMPromptType {
+  /** 시스템 프롬프트 (Chat 모델용) */
+  systemPrompt: string;
+  /** 사용자 프롬프트 (완전한 분석 지시사항 포함) */
+  userPrompt: string;
+  /** 단일 프롬프트 (Text Generation 모델용) */
+  fullPrompt: string;
+}
+
+/**
  * 분석 프롬프트를 구성합니다.
+ * 모든 LLM 서비스에서 사용할 수 있도록 통일된 프롬프트를 생성합니다.
  */
 function buildAnalysisPrompt(data: {
   symbol: string;
@@ -488,64 +474,183 @@ function buildAnalysisPrompt(data: {
   candles: CandleDataType[];
   technicalIndicators?: TechnicalIndicatorsType;
   technicalAnalysis: AIAnalysisType;
-}): string {
+}): LLMPromptType {
   const recentPrices = data.candles
     .slice(-10)
     .map((c) => c.close)
     .join(', ');
 
-  return `You are a professional stock analyst. Analyze the following stock data and provide your analysis.
+  // 원시 데이터만 제공, 해석은 LLM이 스스로 하도록
 
-**Stock Information:**
+  // 시스템 프롬프트 (Chat 모델용)
+  const systemPrompt =
+    'You are a professional stock analyst. Analyze the provided stock data and respond in Korean language. Use simple and easy-to-understand Korean words. Avoid mixing other languages, technical jargon, or English words. Write naturally as if explaining to an informed investor. Respond ONLY with valid JSON, no markdown, no explanations.';
+
+  // 주식 데이터 부분
+  const stockDataSection = `**Stock Information:**
 - Symbol: ${data.symbol}
-- Current Price: $${data.stockInfo.currentPrice}
-- Change Percent: ${data.stockInfo.changePercent}%
+- Current Price: $${data.stockInfo.currentPrice.toFixed(2)}
+- Change Percent: ${data.stockInfo.changePercent.toFixed(2)}%
 
 **Market Condition:**
-- Market indices: Not available (free plan limitation)
+${
+  data.marketCondition.marketIndices
+    ? `- S&P 500: ${
+        data.marketCondition.marketIndices.sp500?.value?.toFixed(2) || 'N/A'
+      } (${
+        data.marketCondition.marketIndices.sp500?.changePercent?.toFixed(2) || 0
+      }%)
+- NASDAQ: ${
+        data.marketCondition.marketIndices.nasdaq?.value?.toFixed(2) || 'N/A'
+      } (${
+        data.marketCondition.marketIndices.nasdaq?.changePercent?.toFixed(2) ||
+        0
+      }%)`
+    : '- Market indices: Not available'
+}
 
 **Technical Indicators:**
-- RSI: ${data.technicalIndicators?.rsi || 'N/A'}
+- RSI: ${
+    data.technicalIndicators?.rsi?.toFixed(2) || 'N/A'
+  } (Calculated based on 14-day daily closing prices. Standard thresholds: < 30 = Oversold, > 70 = Overbought)
 - MACD: ${
     data.technicalIndicators?.macd
-      ? JSON.stringify(data.technicalIndicators.macd)
+      ? `Value: ${data.technicalIndicators.macd.value.toFixed(
+          4
+        )}, Signal: ${data.technicalIndicators.macd.signal.toFixed(
+          4
+        )}, Histogram: ${data.technicalIndicators.macd.histogram.toFixed(4)}`
       : 'N/A'
   }
 - Moving Averages (SMA): ${
     data.technicalIndicators?.sma
-      ? JSON.stringify(data.technicalIndicators.sma)
+      ? `20일: ${
+          data.technicalIndicators.sma.sma_20?.toFixed(2) || 'N/A'
+        }, 50일: ${
+          data.technicalIndicators.sma.sma_50?.toFixed(2) || 'N/A'
+        }, 200일: ${data.technicalIndicators.sma.sma_200?.toFixed(2) || 'N/A'}`
       : 'N/A'
   }
 
-**Recent Price Trend:**
+**Recent Price Trend (last 10 days closing prices):**
 ${recentPrices}
 
-**Technical Analysis Results:**
-- Trend: ${data.technicalAnalysis.trend.direction} (${
+**Technical Analysis Summary:**
+- Trend Direction: ${data.technicalAnalysis.trend.direction} (${
     data.technicalAnalysis.trend.strength
   })
-- AI Score: ${data.technicalAnalysis.score} (${data.technicalAnalysis.grade})
-- Target Price: $${data.technicalAnalysis.targetPrice} (+${
-    data.technicalAnalysis.targetReturn
-  }%)
-- Stop Loss: $${data.technicalAnalysis.stopLoss} (${
-    data.technicalAnalysis.stopLossPercent
-  }%)
+- Overall AI Score: ${data.technicalAnalysis.score}/100 (Grade: ${
+    data.technicalAnalysis.grade
+  })
+- Target Price: $${data.technicalAnalysis.targetPrice.toFixed(
+    2
+  )} (Expected return: +${data.technicalAnalysis.targetReturn.toFixed(2)}%)
+- Stop Loss: $${data.technicalAnalysis.stopLoss.toFixed(
+    2
+  )} (Risk: ${data.technicalAnalysis.stopLossPercent.toFixed(2)}%)`;
 
-**IMPORTANT: Respond in Korean language. Use simple and easy-to-understand Korean words. Avoid mixing other languages or technical jargon. Write naturally as if explaining to a non-expert.**
+  // RSI 상태 판단 (명확한 기준)
+  let rsiStatus = '';
+  if (data.technicalIndicators?.rsi !== undefined) {
+    const rsi = data.technicalIndicators.rsi;
+    if (rsi < 30) {
+      rsiStatus = `OVERSOLD (과매도) - RSI is ${rsi.toFixed(
+        2
+      )}, which is below 30. This is a rare condition indicating the stock may be oversold.`;
+    } else if (rsi > 70) {
+      rsiStatus = `OVERBOUGHT (과매수) - RSI is ${rsi.toFixed(
+        2
+      )}, which is above 70. This is a rare condition indicating the stock may be overbought.`;
+    } else if (rsi >= 50) {
+      rsiStatus = `NEUTRAL TO BULLISH - RSI is ${rsi.toFixed(
+        2
+      )}, which is in the normal range (30-70). The stock is showing bullish momentum but NOT oversold.`;
+    } else {
+      rsiStatus = `NEUTRAL TO BEARISH - RSI is ${rsi.toFixed(
+        2
+      )}, which is in the normal range (30-70). The stock is showing bearish momentum but NOT oversold.`;
+    }
+  } else {
+    rsiStatus = 'RSI data is not available.';
+  }
 
+  // 분석 지시사항 부분
+  const analysisInstructions = `**CRITICAL RSI INTERPRETATION (READ CAREFULLY):**
+Current RSI Status: ${rsiStatus}
+
+**RSI Calculation Method:**
+- RSI is calculated based on 14-day daily closing prices (일별 데이터 기준, 최근 14일간의 종가 데이터 사용)
+- This means the RSI value reflects the stock's momentum over the past 14 trading days
+- RSI < 30: OVERSOLD (과매도) - This is a RARE condition indicating the stock has been declining significantly over the past 14 days. Only use this term when RSI is actually below 30.
+- RSI 30-50: NEUTRAL TO BEARISH - This is NOT oversold. The stock is in normal range, showing some bearish momentum but not extreme.
+- RSI 50-70: NEUTRAL TO BULLISH - This is NOT oversold or overbought. The stock is in normal range, showing some bullish momentum but not extreme.
+- RSI > 70: OVERBOUGHT (과매수) - This is a RARE condition indicating the stock has been rising significantly over the past 14 days. Only use this term when RSI is actually above 70.
+
+**IMPORTANT:**
+- RSI is based on 14-day daily data, so it reflects medium-term momentum, not short-term fluctuations
+- DO NOT say "과매도" (oversold) unless RSI is actually below 30
+- DO NOT say "과매수" (overbought) unless RSI is actually above 70
+- Most stocks have RSI between 30-70, which is NORMAL range (대부분의 주식은 30-70 사이의 정상 범위)
+- If RSI is between 30-50, describe it as "약한 하락 모멘텀" or "중립적" or "정상 범위", NOT as "과매도"
+- If RSI is between 50-70, describe it as "약한 상승 모멘텀" or "중립적" or "정상 범위", NOT as "과매수"
+
+**Analysis Guidelines (BALANCED APPROACH):**
+- Consider ALL indicators equally - do not over-rely on any single indicator
+- RSI: Primary momentum indicator - use it to assess overbought/oversold conditions
+- MACD: Trend confirmation indicator - positive histogram with MACD above signal suggests bullish momentum, negative histogram with MACD below signal suggests bearish momentum
+- Moving Averages: Support/Resistance reference only - they are lagging indicators and should not be the primary basis for analysis. Use them as supplementary information, not the main driver.
+- Price Trend: Most important - analyze the actual price movement and recent price action
+- Market Conditions: Context matters - consider overall market sentiment (S&P 500, NASDAQ)
+- Provide nuanced analysis that considers all factors together, not just one indicator
+- DO NOT over-emphasize moving averages (especially 200-day MA) - they are historical averages, not predictive indicators
+- Focus on current momentum (RSI, MACD) and price action rather than historical averages
+- Write naturally in Korean, as if explaining to an informed investor
+- DO NOT confuse oversold (과매도) with overbought (과매수)
+
+**Response Format:**
 Respond in the following JSON format:
 {
-  "score": A number between 0-100,
-  "grade": "SSS" | "SS" | "S" | "A" | "B" | "C" | "D" | "F",
-  "summary": "Comprehensive analysis summary in Korean (max 200 characters, use simple and clear Korean)",
-  "riskFactors": ["Risk factor 1 in Korean", "Risk factor 2 in Korean"],
-  "strategy": "Investment strategy suggestion in Korean (max 150 characters, use simple and clear Korean)",
-  "sentiment": "bullish" | "bearish" | "neutral",
-  "confidence": A number between 0-100
+  "score": <A number between 0-100, your calculated score based on all factors>,
+  "grade": "<One of: SSS, SS, S, A, B, C, D, F>",
+  "summary": "<Comprehensive analysis summary in Korean, 200-300 characters. Provide nuanced insights that consider both opportunities and risks. Write naturally as if explaining to an informed investor.>",
+  "riskFactors": ["<Actual risk factor 1 in Korean - be specific, not generic>", "<Actual risk factor 2 in Korean - be specific, not generic>"],
+  "strategy": "<Investment strategy suggestion in Korean, 200-300 characters. Be specific to this stock's situation. Consider entry timing, position sizing, and exit strategy.>",
+  "sentiment": "<One of: bullish, bearish, neutral>",
+  "confidence": <A number between 0-100, your confidence level in this analysis>
 }
 
-Remember: All text fields (summary, riskFactors, strategy) must be in Korean only. Use everyday Korean words that are easy to understand.`;
+**Important Requirements:**
+- All text fields (summary, riskFactors, strategy) must be in Korean ONLY
+- "summary" should be comprehensive and nuanced, not just listing facts
+- "riskFactors" should be actual risks specific to this stock's current situation. Think about:
+  * What could go wrong with this investment?
+  * What market conditions could negatively impact this stock?
+  * What technical indicators suggest potential downside?
+  * What fundamental factors pose risks?
+  - DO NOT use generic phrases or copy example text
+  - Each risk factor should be unique and specific to this stock's analysis
+- "strategy" should be specific and actionable, considering the stock's unique situation
+- Create unique, thoughtful analysis for each stock
+- Respond with JSON object only, no markdown or code blocks, pure JSON only`;
+
+  // 사용자 프롬프트 (Chat 모델용)
+  const userPrompt = `Analyze the following stock data as a professional analyst. Provide comprehensive, nuanced insights in Korean.
+
+Stock Data:
+${stockDataSection}
+
+${analysisInstructions}`;
+
+  // 전체 프롬프트 (Text Generation 모델용)
+  const fullPrompt = `${systemPrompt}
+
+${userPrompt}`;
+
+  return {
+    systemPrompt,
+    userPrompt,
+    fullPrompt,
+  };
 }
 
 /**
@@ -560,9 +665,9 @@ export function combineAnalysis(
   }
 
   // 기술적 분석 점수와 LLM 점수를 가중 평균
-  // 기술적 분석 70% + LLM 분석 30%
+  // 기술적 분석 50% + LLM 분석 50%
   const combinedScore = Math.round(
-    technicalAnalysis.score * 0.7 + llmAnalysis.score * 0.3
+    technicalAnalysis.score * 0.5 + llmAnalysis.score * 0.5
   );
 
   // 등급 재계산

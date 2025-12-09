@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import MarketCondition from '@widgets/stock-analysis/ui/market-condition';
 import AIScore from '@widgets/stock-analysis/ui/ai-score';
@@ -19,7 +19,6 @@ import { getStockAnalysis } from '@/entities/analysis/api/analysis-api';
 export default function Home() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const urlSymbol = searchParams.get('symbol')?.toUpperCase() || '';
   const [inputSymbol, setInputSymbol] = useState(() => urlSymbol || '');
 
@@ -115,7 +114,7 @@ export default function Home() {
           <button
             onClick={handleAnalyze}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors cursor-pointer"
           >
             {loading ? '분석 중...' : '분석'}
           </button>
@@ -141,7 +140,7 @@ export default function Home() {
               <button
                 onClick={handleRefresh}
                 disabled={isFetching || loading}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50 border border-gray-700 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50 border border-gray-700 rounded-lg text-sm font-medium transition-colors cursor-pointer"
                 title="새로운 데이터 가져오기"
               >
                 <svg
